@@ -16,8 +16,13 @@ public class TaskAppConfig {
 	private boolean master=true;
 	private AsyncTaskListener updateCallback=null;
 	
-	private String stunServer="89.29.122.45";
+	private String stunServer="89.29.122.60";
 	private int stunPort=3478;
+	
+	private String txName="";
+	private String txServer="";
+	private int txServerPort=9999;
+	
 	private IServerService api=null;
 	
 	@Override
@@ -80,5 +85,23 @@ public class TaskAppConfig {
 	}
 	public void setApi(IServerService api) {
 		this.api = api;
+	}
+	public String getTxName() {
+		return txName;
+	}
+	public void setTxName(String txName) {
+		this.txName = txName;
+	}
+	public String getTxServer() {
+		return txServer;
+	}
+	public void setTxServer(String txServer) {
+		this.txServer = txServer;
+	}
+	public int getTxServerPort() {
+		return txServerPort;
+	}
+	public void setTxServerPort(int txServerPort) {
+		this.txServerPort = txServerPort;
 	}
 }

@@ -3,11 +3,11 @@ package com.phoenix.nattester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -15,32 +15,36 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.text.Editable;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.actionbarsherlock.view.Menu;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.service.IServerService;
 import com.phoenix.nattester.service.IServerServiceCallback;
 import com.phoenix.nattester.service.ReceivedMessage;
 import com.phoenix.nattester.service.ServerService;
 
-public class MainActivity extends Activity implements AsyncTaskListener, MessageInterface, IServerServiceCallback{
+public class MainActivity extends SherlockFragmentActivity implements AsyncTaskListener, MessageInterface, IServerServiceCallback{
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainActivity.class);
 	public final static String TAG = "MainActivity";
+	public static String ACTIVE_TAB = "activeTab";
 	
-	Button btnGetPublicIP;
-	Button btnNATDetect;
-	Button btnLogClear;
-	Button btnAlg;
-	CheckBox checkMaster;
-	EditText ePublicIP;
-	EditText ePeerIP;
-	EditText ePeerPort;
-	EditText eN;
-	EditText eLog;
+	protected ProgressDialog progressDialog;
+	
+	protected Button btnGetPublicIP;
+	protected Button btnNATDetect;
+	protected Button btnLogClear;
+	protected Button btnAlg;
+	protected CheckBox checkMaster;
+	protected EditText ePublicIP;
+	protected EditText ePeerIP;
+	protected EditText ePeerPort;
+	protected EditText eN;
+	protected EditText eLog;
 	
 	// static application config
 	final TaskAppConfig cfg = new TaskAppConfig(); 
@@ -92,6 +96,10 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
 				LOGGER.debug("Setting callback in activityXX: " + MainActivity.this.smallCallback);
 				api.setCallback(MainActivity.this.smallCallback);
 				api.startServer();
+				
+				// progress dialog is not needed now
+				progressDialog.setMessage("Done");        		
+				progressDialog.dismiss();
 			} catch (RemoteException e) {
 				LOGGER.error("Failed to add listener", e);
 			}
@@ -104,6 +112,7 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
 		}
 	};
 	
+	
 	public final void updateCfgFromUI(){
 		try {
 			cfg.setMaster(checkMaster.isChecked());
@@ -112,11 +121,34 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
 			cfg.setPeerPort(Integer.parseInt(ePeerPort.getText().toString()));
 			cfg.setPublicIP(ePublicIP.getText().toString());
 			cfg.setStunPort(3478);
-			cfg.setStunServer("89.29.122.45");
+			cfg.setStunServer("89.29.122.60");
 			cfg.setUpdateCallback(this);
 		} catch(Exception e){
 			LOGGER.error("Problem during fetching app config", e);
 		}
+	}
+	
+	private void initProgress(String message, String title){
+		progressDialog=new ProgressDialog(MainActivity.this);
+		progressDialog.setMessage(message);
+		progressDialog.setTitle(title);
+		progressDialog.setCancelable(true);
+		progressDialog.setCanceledOnTouchOutside(false);
+		progressDialog.setIndeterminate(true);
+		progressDialog.setOnCancelListener(new OnCancelListener() {
+			@Override
+			public void onCancel(DialogInterface dialog) {
+				LOGGER.debug("Progressbar canceled");
+				MainActivity.this.finish();
+			}
+		});
+		
+		progressDialog.setOnDismissListener(new OnDismissListener() {
+			@Override
+			public void onDismiss(DialogInterface dialog) {
+				LOGGER.debug("Progressbar dismissed");
+			}
+		});
 	}
 	
 	@Override
@@ -130,6 +162,9 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
 		Intent intent = new Intent(ServerService.class.getName());
 		startService(intent);
 		bindService(intent, serviceConnection, 0);
+		
+		// init progressbar that waits for service to bind
+		this.initProgress("Initializing...", "Starting & connecting to service");
 		
 		// initialize controls
 		btnGetPublicIP = (Button) findViewById(R.id.btnGetPublicIP);
@@ -272,6 +307,8 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
             }
         });
         
+        // start progress bar and wait for connection
+        this.progressDialog.show();
 	}
 
 	@Override
@@ -291,7 +328,10 @@ public class MainActivity extends Activity implements AsyncTaskListener, Message
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.activity_main, menu);
+		getSupportMenuInflater().inflate(R.menu.activity_main, menu);
+		
+		// Old SDK function before Sherlock was used
+		//getMenuInflater().inflate(R.menu.activity_main, menu);
 		return true;
 	}
 

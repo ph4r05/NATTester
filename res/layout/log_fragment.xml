@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+    
+    <EditText
+             android:id="@+id/txtLog"
+             android:layout_width="fill_parent"
+             android:layout_height="fill_parent"
+             android:ems="10"
+             android:fontFamily="monospace"
+             android:gravity="top"
+             android:inputType="textMultiLine|none"
+             android:linksClickable="false"
+             android:scrollHorizontally="false"
+             android:text="Waiting for user action...\n"
+             android:textSize="10sp" />
+    
+</LinearLayout>

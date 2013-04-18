@@ -53,13 +53,13 @@ public class ServerService extends Service {
 				}
 				
 				// open socket, bind it and set timeout on it
-				socket = new DatagramSocket(23456);
+				socket = new DatagramSocket(23457);
 				socket.setReuseAddress(true);
                 socket.setSoTimeout(300);
 				
 				// prepare sender and listener threads
-				sender = new ServerSender(23456, socket);
-				listener = new ServerListener(23456, socket);
+				sender = new ServerSender(23457, socket);
+				listener = new ServerListener(23457, socket);
 				
 				LOGGER.debug("Callback in service: " + ServerService.this.callback);
 				sender.setCallback(ServerService.this.callback);

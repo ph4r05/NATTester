@@ -77,6 +77,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 			dt.setDi(new DiscoveryInfo(iaddress));
 
 			this.publishProgress(new DefaultAsyncProgress(0.2, "Test 1: isnodeNAT-ed?"));
+			if (this.isCancelled()) return null;
 			if (dt.test1()) {
 				if (this.isCancelled()) return null;
 				this.publishProgress(new DefaultAsyncProgress(0.3, "Test 2: address/port (CONE) restricted?"));
@@ -118,6 +119,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 	        this.publishProgress(new DefaultAsyncProgress(0.8, "Test portDeta: switch IP, long"));
 	        dt.testSymmetricPortDelta(3490, 10, 34567, 1000, true);
 	        
+	        if (this.isCancelled()) return null;
 	        DiscoveryInfo di = dt.test();
 	        Log.i(TAG, "DiscoveryInfo: " + di.toString());
 	        
@@ -134,6 +136,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 			return e;
 		}
 		
+		LOGGER.debug("NAT task finishing");
 		return null;
 	}
 	
@@ -158,6 +161,8 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 	
     @Override
 	protected void onPostExecute(Exception result) {
+    	LOGGER.debug("onPostExecute() NAT detect task");
+    	
 		// setup dialog
 		if (dialog!=null){
 			// some exception returned -> problem during process
@@ -174,6 +179,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 		}
 		
 		if (callback!=null){
+			LOGGER.debug("onPostExecute() NAT detect task - callback");
 			callback.onTaskUpdate(null, 2);
 		}
 	}
@@ -200,6 +206,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 		}
 		
 		if (callback!=null){
+			LOGGER.debug("NAT task cancelled, -1");
 			callback.onTaskUpdate(null, -1);
 		}
 	}
