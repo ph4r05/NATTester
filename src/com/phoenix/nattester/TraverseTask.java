@@ -20,18 +20,15 @@ import android.view.KeyEvent;
 
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 
-import de.javawi.jstun.test.DiscoveryInfo;
-import de.javawi.jstun.test.DiscoveryTest;
-
 /**
  * Async task for NAT detection	
  * 
  * @author ph4r05
  * docs: http://developer.android.com/reference/android/os/AsyncTask.html
  */
-public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exception> implements OnKeyListener, MessageInterface {
+public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exception> implements OnKeyListener, MessageInterface {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GetPublicIPTask.class);
-	public final static String TAG = "NATDetectTask";
+	public final static String TAG = "TraverseTask";
 	
 	// where to publish progress
 	private ProgressDialog dialog = null;
@@ -68,65 +65,14 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 	        InetAddress iaddress = InetAddress.getByName(localIP);
 	        LOGGER.debug("Local IP address obtained: " + localIP);
 	        
-	        DiscoveryTest dt = new DiscoveryTest(iaddress, address2connect, cfg.getStunPort());
-	        dt.setCallback(this);
-	        dt.setTimeoutInitValue(timeoutInitValue);
-	        dt.setMa(null);
-	        dt.setCa(null);
-	        dt.setNodeNatted(true);
-	        dt.setSocketTest1(null);
-			dt.setDi(new DiscoveryInfo(iaddress));
-
-			this.publishProgress(new DefaultAsyncProgress(0.2, "Test 1: isnodeNAT-ed?"));
-			if (this.wasCancelled()) return null;
-			if (dt.test1()) {
-				if (this.wasCancelled()) return null;
-				this.publishProgress(new DefaultAsyncProgress(0.3, "Test 2: address/port (CONE) restricted?"));
-				
-				if (dt.test2()) {
-					if (this.wasCancelled()) return null;
-					this.publishProgress(new DefaultAsyncProgress(0.4, "Test 1 redo: restore changed IP"));
-					
-					if (dt.test1Redo()) {
-						if (this.wasCancelled()) return null;
-						this.publishProgress(new DefaultAsyncProgress(0.5, "Test 3: is port restricted?"));
-						
-						dt.test3();
-					}
-				}
-			}
-			
-	        try {
-	            if (socketTest1!=null 
-	            		&& (socketTest1.isBound() || socketTest1.isConnected()) 
-	            		&& socketTest1.isClosed()) 
-	            	socketTest1.close();
-	        } catch(Exception e){
-	            ;
-	        }
 	        
-	        // detect symmetric NAT IP/port sensitivity
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.6, "Test portDeta: switchIP, fast"));
-	        dt.testSymmetricPortDelta(3480, 10, 34567, 0, true);
 	        
-	        // finally only port switching
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.7, "Test portDeta: sameIP, fast"));
-	        dt.testSymmetricPortDelta(3500, 10, 34567, 100, false);
 	        
-	        // once again with 1 second pause between scans
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.8, "Test portDeta: switch IP, long"));
-	        dt.testSymmetricPortDelta(3490, 10, 34567, 1000, true);
 	        
-	        if (this.wasCancelled()) return null;
-	        DiscoveryInfo di = dt.test();
-	        Log.i(TAG, "DiscoveryInfo: " + di.toString());
+	        
 	        
 	        this.publishProgress(new DefaultAsyncProgress(1.0, "Done"));
 			Log.i(TAG, "Finished properly");
-			
 		} catch (UnknownHostException e1) {
 			Log.e(TAG, "Unknown host excepion", e1);
 		} catch (RuntimeException re){

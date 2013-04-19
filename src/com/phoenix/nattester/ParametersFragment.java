@@ -128,34 +128,35 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 			}
 		});
 	        
-	        /** INITIALIZE BUTTON; NAT detect */
-	        btnNATDetect.setOnClickListener(new View.OnClickListener() {
-	            @Override
-	            public void onClick(View v) {
-	                    try{
-	                    	final NATDetectTask task = new NATDetectTask(); 	                    	
-	                    	task.setContext(getActivity());
-	                    	task.setDialog(null);
-	                    	task.setCallback(iproc);
-	                    	iproc.setOnCancelListener(new OnCancelListener() {
-								@Override
-								public void onCancel(DialogInterface dialog) {
-									LOGGER.debug("cancelling NAT detect task");
-									task.cancel(false);
-								}
-							});
-	                    	
-	                    	// parameters
-	                    	updateCfgFromUI();
-	                    	
-	                    	// execute async task
-	                    	iproc.start();
-	                    	task.execute(cfg);
-	                    }catch(Exception e){
-	                    	Log.e(TAG, "Exception", e);
-	                    }
-	            }
-	        });
+        /** INITIALIZE BUTTON; NAT detect */
+        btnNATDetect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try{
+                	final NATDetectTask task = new NATDetectTask(); 	                    	
+                	task.setContext(getActivity());
+                	task.setDialog(null);
+                	task.setCallback(iproc);
+                	task.setGuiLogger((GuiLogger)getActivity());
+                	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling NAT detect task");
+							task.cancel(false);
+						}
+					});
+                	
+                	// parameters
+                	updateCfgFromUI();
+                	
+                	// execute async task
+                	iproc.start();
+                	task.execute(cfg);
+                }catch(Exception e){
+                	Log.e(TAG, "Exception", e);
+                }
+            }
+        });
 	        
 	        /** INITIALIZE BUTTON; connect *
 	        btnAlg.setOnClickListener(new View.OnClickListener() {
@@ -195,9 +196,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	}
 	  
 	  public void taskActionsSetEnabled(boolean enabled){
-		  btnAlg.setEnabled(enabled);
-		  btnGetPublicIP.setEnabled(enabled);
-		  btnNATDetect.setEnabled(enabled);
+			btnAlg.setEnabled(enabled);
+			btnGetPublicIP.setEnabled(enabled);
+			btnNATDetect.setEnabled(enabled);	
 	  }
 	  
 	  /**
@@ -211,18 +212,30 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		  private OnCancelListener cancelListener=null;
 		
 		  public void start(){
-			  pbar.setIndeterminate(true);
-			  pbar.invalidate();
 			  canceled=false;
 			  running=true;
 			  taskCancelled=false;
-			  taskActionsSetEnabled(false);
+			  
+			  getActivity().runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					taskActionsSetEnabled(false);
+					pbar.setIndeterminate(true);
+					pbar.invalidate();					
+				}
+			});
 		  }
 		  
 		  public void stop(){
-			  running=false;
-			  pbar.setIndeterminate(false);
-			  taskActionsSetEnabled(true);
+			  running=false;			  
+			  getActivity().runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						taskActionsSetEnabled(true);
+						pbar.setIndeterminate(false);
+						pbar.invalidate();					
+					}
+				});
 		  }
 		  
 		  public boolean isCanceled(){ return canceled; }

@@ -32,10 +32,7 @@ import android.view.View;
 
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.ActionBar.Tab;
-import com.actionbarsherlock.app.SherlockFragment;
 import com.actionbarsherlock.app.SherlockFragmentActivity;
-import com.actionbarsherlock.internal.nineoldandroids.animation.ObjectAnimator;
-import com.actionbarsherlock.internal.nineoldandroids.animation.ValueAnimator;
 import com.actionbarsherlock.view.Menu;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.service.IServerService;
@@ -43,7 +40,7 @@ import com.phoenix.nattester.service.IServerServiceCallback;
 import com.phoenix.nattester.service.ReceivedMessage;
 import com.phoenix.nattester.service.ServerService;
 
-public class MainFragmentActivity extends SherlockFragmentActivity  implements AsyncTaskListener, MessageInterface, IServerServiceCallback{
+public class MainFragmentActivity extends SherlockFragmentActivity  implements AsyncTaskListener, MessageInterface, GuiLogger, IServerServiceCallback{
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainFragmentActivity.class);
 	public final static String TAG = "MainFragmentActivity";
 	public final static String THIS_FILE = "MainFragmentActivity";

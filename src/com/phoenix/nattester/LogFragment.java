@@ -20,7 +20,7 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.phoenix.nattester.MainFragmentActivity.ViewPagerVisibilityListener;
 
-public class LogFragment extends SherlockFragment implements MessageInterface, ViewPagerVisibilityListener {
+public class LogFragment extends SherlockFragment implements MessageInterface, GuiLogger, ViewPagerVisibilityListener {
 	  private static final Logger LOGGER = LoggerFactory.getLogger(LogFragment.class);
 	  public final static String TAG = "LogFragment";
 	  

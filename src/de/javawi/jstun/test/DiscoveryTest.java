@@ -23,6 +23,7 @@ import java.net.UnknownHostException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.phoenix.nattester.GuiLogger;
 import com.phoenix.nattester.MessageInterface;
 
 import de.javawi.jstun.attribute.ChangeRequest;
@@ -52,6 +53,7 @@ public class DiscoveryTest {
 	DatagramSocket socketTest1 = null;
 	DiscoveryInfo di = null;
 	MessageInterface callback = null;
+	GuiLogger guiLogger;
 	
 	public DiscoveryTest(InetAddress iaddress , String stunServer, int port) {
 		super();
@@ -131,7 +133,9 @@ public class DiscoveryTest {
 				byte[] data = sendMH.getBytes();
 				DatagramPacket send = new DatagramPacket(data, data.length);
 				socketTest1.send(send);
+				
 				LOGGER.debug("Test 1: Binding Request sent to: " + stunServer + ":" + port);
+				this.guiLog("Test 1: Binding Request sent to: " + stunServer + ":" + port);
 			
 				MessageHeader receiveMH = new MessageHeader();
 				while (!(receiveMH.equalTransactionID(sendMH))) {
@@ -166,6 +170,8 @@ public class DiscoveryTest {
 			} catch (SocketTimeoutException ste) {
 				if (timeSinceFirstTransmission < timeoutLimit) {
 					LOGGER.debug("Test 1: Socket timeout while receiving the response.");
+					this.guiLog("Test 1: Socket timeout while receiving the response.");
+					
 					timeSinceFirstTransmission += timeout;
 					int timeoutAddValue = (timeSinceFirstTransmission * 2);
 					if (timeoutAddValue > 1600) timeoutAddValue = 1600;
@@ -173,6 +179,8 @@ public class DiscoveryTest {
 				} else {
 					// node is not capable of udp communication
 					LOGGER.debug("Test 1: Socket timeout while receiving the response. Maximum retry limit exceed. Give up.");
+					this.guiLog("Test 1: Socket timeout while receiving the response. Maximum retry limit exceed. Give up.");
+					
 					di.setBlockedUDP();
 					LOGGER.debug("Node is not capable of UDP communication.");
 					return false;
@@ -214,6 +222,7 @@ public class DiscoveryTest {
 				DatagramPacket send = new DatagramPacket(data, data.length);
 				sendSocket.send(send);
 				LOGGER.debug("Test 2: Binding Request sent (CHANGE_IP | CHANGE_PORT) to: " + stunServer + ":"+port);
+				this.guiLog("Test 2: Binding Request sent (CHANGE_IP | CHANGE_PORT) to: " + stunServer + ":"+port);
 				
 				int localPort = sendSocket.getLocalPort();
 				InetAddress localAddress = sendSocket.getLocalAddress();
@@ -223,7 +232,7 @@ public class DiscoveryTest {
 				DatagramSocket receiveSocket = new DatagramSocket(localPort, localAddress);
 				receiveSocket.connect(ca.getAddress().getInetAddress(), ca.getPort());
 				receiveSocket.setSoTimeout(timeout);
-                                LOGGER.debug("Test 2: Receiving on (CHANGE_IP | CHANGE_PORT) to: " + ca.getAddress().toString() + ":"+ca.getPort());
+                LOGGER.debug("Test 2: Receiving on (CHANGE_IP | CHANGE_PORT) to: " + ca.getAddress().toString() + ":"+ca.getPort());
 				
 				MessageHeader receiveMH = new MessageHeader();
 				while(!(receiveMH.equalTransactionID(sendMH))) {
@@ -255,6 +264,8 @@ public class DiscoveryTest {
 					timeout = timeoutAddValue;
 				} else {
 					LOGGER.debug("Test 2: Socket timeout while receiving the response. Maximum retry limit exceed. Give up.");
+					this.guiLog("Test 2: Socket timeout while receiving the response. Maximum retry limit exceed. Give up.");
+					
 					if (!nodeNatted) {
 						di.setSymmetricUDPFirewall();
 						LOGGER.debug("Node is behind a symmetric UDP firewall.");
@@ -303,6 +314,7 @@ public class DiscoveryTest {
 				DatagramPacket send = new DatagramPacket(data, data.length);
 				socketTest1.send(send);
 				LOGGER.debug("Test 1 redo with changed address: Binding Request sent to: " + ca.getAddress().toString() + ":"+ca.getPort());
+				this.guiLog("Test 1 redo with changed address: Binding Request sent to: " + ca.getAddress().toString() + ":"+ca.getPort());
 				
 				MessageHeader receiveMH = new MessageHeader();
 				while (!(receiveMH.equalTransactionID(sendMH))) {
@@ -376,6 +388,7 @@ public class DiscoveryTest {
 				DatagramPacket send = new DatagramPacket(data, data.length);
 				sendSocket.send(send);
 				LOGGER.debug("Test 3: Binding Request sent to: " + stunServer + ":"+port);
+				this.guiLog("Test 3: Binding Request sent to: " + stunServer + ":"+port);
 				
 				int localPort = sendSocket.getLocalPort();
 				InetAddress localAddress = sendSocket.getLocalAddress();
@@ -385,7 +398,7 @@ public class DiscoveryTest {
 				DatagramSocket receiveSocket = new DatagramSocket(localPort, localAddress);
 				receiveSocket.connect(InetAddress.getByName(stunServer), ca.getPort());
 				receiveSocket.setSoTimeout(timeout);
-                                LOGGER.debug("Test 3: Receiving on: " + stunServer + ":"+ca.getPort());
+                LOGGER.debug("Test 3: Receiving on: " + stunServer + ":"+ca.getPort());
 				
 				MessageHeader receiveMH = new MessageHeader();
 				while (!(receiveMH.equalTransactionID(sendMH))) {
@@ -445,6 +458,7 @@ public class DiscoveryTest {
             int scanIteration = 0;
             String address2connect = stunServer;
             InetAddress address2connectInet = InetAddress.getByName(stunServer);
+            String logMsg="";
             
             // how many iterations there will be in real?
             int realCount = switchIP ? 2*count : count;
@@ -511,9 +525,11 @@ public class DiscoveryTest {
                             rec.serverPort = currentPort;
                             recs.add(rec);
                             
-                            LOGGER.debug("Test portDelta: received reply [ME:" + localPort + "]"
+                            logMsg="Test portDelta: received reply [ME:" + localPort + "]"
                                     + "<---|"+ma.getAddress().toString()+":"+ma.getPort()+"|"
-                                    + "<---{STUN "+address2connect+":"+currentPort+"}");
+                                    + "<---{STUN "+address2connect+":"+currentPort+"}";
+                            LOGGER.debug(logMsg);
+                            this.guiLog(logMsg);
                             
                             if (switchIP){
                                 // In order to detect address sensitivity we have to 
@@ -719,7 +735,18 @@ public class DiscoveryTest {
 		public void setCallback(MessageInterface callback) {
 			this.callback = callback;
 		}
+
+		public GuiLogger getGuiLogger() {
+			return guiLogger;
+		}
+
+		public void setGuiLogger(GuiLogger guiLogger) {
+			this.guiLogger = guiLogger;
+		}
 	
-	
+		private void guiLog(String message){
+			if (this.callback==null)return;
+			callback.addMessage(message);
+		}
 	
 }
