@@ -103,6 +103,7 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 			api = IServerService.Stub.asInterface(service);
 			try {
 				cfg.setApi(api);
+				if (paramFrag!=null) paramFrag.setApi(api);
 				
 				LOGGER.debug("Setting callback in activityXX: " + MainFragmentActivity.this.smallCallback);
 				api.setCallback(MainFragmentActivity.this.smallCallback);

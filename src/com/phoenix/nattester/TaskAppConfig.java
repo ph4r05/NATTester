@@ -22,6 +22,7 @@ public class TaskAppConfig {
 	private String txName="";
 	private String txServer="";
 	private int txServerPort=9999;
+	private String txId="";
 	
 	private IServerService api=null;
 	
@@ -103,5 +104,11 @@ public class TaskAppConfig {
 	}
 	public void setTxServerPort(int txServerPort) {
 		this.txServerPort = txServerPort;
+	}
+	public String getTxId() {
+		return txId;
+	}
+	public void setTxId(String txId) {
+		this.txId = txId;
 	}
 }

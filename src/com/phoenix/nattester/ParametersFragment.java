@@ -24,6 +24,7 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.MainFragmentActivity.ViewPagerVisibilityListener;
+import com.phoenix.nattester.service.IServerService;
 
 public class ParametersFragment extends SherlockFragment implements AsyncTaskListener, ViewPagerVisibilityListener {
 	  private static final Logger LOGGER = LoggerFactory.getLogger(ParametersFragment.class);
@@ -119,44 +120,24 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		  
 		  iproc = new InternalProgress();
 		  		
-		/** INITIALIZE BUTTON; get public IP **/
-        btnGetPublicIP.setOnClickListener(new PublicIPistener());
+		
+        // internal process canceller
         btnAbort.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				iproc.cancel();
 			}
 		});
-	        
+        
+        /** INITIALIZE BUTTON; get public IP **/
+        btnGetPublicIP.setOnClickListener(new PublicIPistener());
+        
         /** INITIALIZE BUTTON; NAT detect */
-        btnNATDetect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try{
-                	final NATDetectTask task = new NATDetectTask(); 	                    	
-                	task.setContext(getActivity());
-                	task.setDialog(null);
-                	task.setCallback(iproc);
-                	task.setGuiLogger((GuiLogger)getActivity());
-                	iproc.setOnCancelListener(new OnCancelListener() {
-						@Override
-						public void onCancel(DialogInterface dialog) {
-							LOGGER.debug("cancelling NAT detect task");
-							task.cancel(false);
-						}
-					});
-                	
-                	// parameters
-                	updateCfgFromUI();
-                	
-                	// execute async task
-                	iproc.start();
-                	task.execute(cfg);
-                }catch(Exception e){
-                	Log.e(TAG, "Exception", e);
-                }
-            }
-        });
+        btnNATDetect.setOnClickListener(new NATClickListener());
+        
+        /** INITIALIZE BUTTON; Traverse */
+        btnAlg.setOnClickListener(new TraverseClickListener());
+        
 	        
 	        /** INITIALIZE BUTTON; connect *
 	        btnAlg.setOnClickListener(new View.OnClickListener() {
@@ -313,6 +294,69 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
               	Log.e(TAG, "Exception", e);
               }
           }
+	  }
+
+	  private class NATClickListener implements View.OnClickListener {
+		  @Override
+          public void onClick(View v) {
+              try{
+              	final NATDetectTask task = new NATDetectTask(); 	                    	
+              	task.setContext(getActivity());
+              	task.setDialog(null);
+              	task.setCallback(iproc);
+              	task.setGuiLogger((GuiLogger)getActivity());
+              	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling NAT detect task");
+							task.cancel(false);
+						}
+					});
+              	
+              	// parameters
+              	updateCfgFromUI();
+              	
+              	// execute async task
+              	iproc.start();
+              	task.execute(cfg);
+              }catch(Exception e){
+              	Log.e(TAG, "Exception", e);
+              }
+          }
+	  }
+	  
+	  private class TraverseClickListener implements View.OnClickListener {
+		  @Override
+          public void onClick(View v) {
+              try{
+              	final TraverseTask task = new TraverseTask(); 	                    	
+              	task.setContext(getActivity());
+              	task.setDialog(null);
+              	task.setCallback(iproc);
+              	task.setGuiLogger((GuiLogger)getActivity());
+              	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling NAT detect task");
+							task.cancel(false);
+						}
+					});
+              	
+              	// parameters
+              	updateCfgFromUI();
+              	
+              	// execute async task
+              	iproc.start();
+              	task.execute(cfg);
+              }catch(Exception e){
+              	Log.e(TAG, "Exception", e);
+              }
+          }
+	  }
+	  
+	  public void setApi(IServerService api){
+		  LOGGER.debug("Setting api from acctivity");
+		  cfg.setApi(api);
 	  }
 	  
 	@Override
