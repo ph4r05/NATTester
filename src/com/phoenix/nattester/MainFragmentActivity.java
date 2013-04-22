@@ -48,10 +48,6 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 	private static final Integer TAB_ID_LOG = 2;
 	Integer initTabId = null;
 	
-	
-	// Progress bar dialog, waiting for service connection
-	protected ProgressDialog progressDialog;
-	
 	// static application config
 	final TaskAppConfig cfg = new TaskAppConfig(); 
 	
@@ -60,109 +56,11 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 	private ParametersFragment paramFrag;
 	private LogFragment logFrag;
 	
-	// Implement public interface for the service
-	private final IServerServiceCallback.Stub binder = new IServerServiceCallback.Stub() {
-
-		@Override
-		public void messageSent(int success) throws RemoteException {
-			MainFragmentActivity.this.messageSent(success);
-		}
-
-		@Override
-		public void messageReceived(ReceivedMessage msg) throws RemoteException {
-			MainFragmentActivity.this.messageReceived(msg);
-		}
-			
-	};
-	
-	private IServerServiceCallback smallCallback = new IServerServiceCallback() {
-		@Override
-		public IBinder asBinder() {
-			LOGGER.debug("AS binder? returning binder: " + binder);
-			return binder;
-		}
-		
-		@Override
-		public void messageSent(int success) throws RemoteException {
-			MainFragmentActivity.this.messageSent(success);
-		}
-		
-		@Override
-		public void messageReceived(ReceivedMessage msg) throws RemoteException {
-			MainFragmentActivity.this.messageReceived(msg);
-		}
-	};
-	
-	private IServerService api;
-	private ServiceConnection serviceConnection = new ServiceConnection() {
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service) {
-			Log.i(TAG, "Service connection established");
-			
-			// that's how we get the client side of the IPC connection
-			api = IServerService.Stub.asInterface(service);
-			try {
-				cfg.setApi(api);
-				if (paramFrag!=null) paramFrag.setApi(api);
-				
-				LOGGER.debug("Setting callback in activityXX: " + MainFragmentActivity.this.smallCallback);
-				api.setCallback(MainFragmentActivity.this.smallCallback);
-				api.startServer();
-				
-				// progress dialog is not needed now
-				progressDialog.setMessage("Done");        		
-				progressDialog.dismiss();
-			} catch (RemoteException e) {
-				LOGGER.error("Failed to add listener", e);
-			}
-		}
-
-		@Override
-		public void onServiceDisconnected(ComponentName name) {
-			Log.i(TAG, "Service connection closed");
-			api=null;
-		}
-	};
-	
-	private void initProgress(String message, String title){
-		progressDialog=new ProgressDialog(MainFragmentActivity.this);
-		progressDialog.setMessage(message);
-		progressDialog.setTitle(title);
-		progressDialog.setCancelable(true);
-		progressDialog.setCanceledOnTouchOutside(false);
-		progressDialog.setIndeterminate(true);
-		progressDialog.setOnCancelListener(new OnCancelListener() {
-			@Override
-			public void onCancel(DialogInterface dialog) {
-				LOGGER.debug("Progressbar canceled");
-				MainFragmentActivity.this.finish();
-			}
-		});
-		
-		progressDialog.setOnDismissListener(new OnDismissListener() {
-			@Override
-			public void onDismiss(DialogInterface dialog) {
-				LOGGER.debug("Progressbar dismissed");
-			}
-		});
-	}
-	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		// Action bar sherlock - add fragments
 		setContentView(R.layout.fragment_host);
-		
-		// service stuff
-		LOGGER.debug("About to start service");
-		
-		Intent intent = new Intent(ServerService.class.getName());
-		startService(intent);
-		bindService(intent, serviceConnection, 0);
-		
-		// init progressbar that waits for service to bind
-		this.initProgress("Initializing...", "Starting & connecting to service");
-		
 		
         final ActionBar ab = getSupportActionBar();
         ab.setDisplayShowHomeEnabled(false);
@@ -177,23 +75,11 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
         mTabsAdapter = new TabsAdapter(this, getSupportActionBar(), mViewPager);
         mTabsAdapter.addTab(prefsTab, ParametersFragment.class, TAB_ID_PREFS);
         mTabsAdapter.addTab(logTab, LogFragment.class, TAB_ID_LOG);
-        
-        // start progress bar and wait for connection
-        this.progressDialog.show();
 	}
 
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		
-		try {
-			LOGGER.debug("About to stop service");
-			api.setCallback(null);
-			this.unbindService(serviceConnection);
-			this.stopService(new Intent(ServerService.class.getName()));
-		} catch(Exception e){
-			LOGGER.error("Exception during service stopping", e);
-		}
 	}
 
 	@Override
@@ -413,10 +299,6 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 	public void setPublicIP(String IP) {
 		if(paramFrag==null) return;
 		paramFrag.setPublicIP(IP);
-	}
-
-	public ProgressDialog getProgressDialog() {
-		return progressDialog;
 	}
 
 	public ParametersFragment getParamFrag() {

@@ -231,19 +231,25 @@ public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress,
 	        int startPort = cfg.getPeerPort();
 	        int currentPort = startPort;
 	        int N = cfg.getN();
-	        String txtMsg = "HelloWorld! my local: " + localIP + "\n";
+	        String txtMsg = "HelloWorld! my local: " + localIP + "; public=" + cfg.getPublicIP() + "\n" ;
 	        byte[] dataMsg = txtMsg.getBytes("UTF-8");
+	        
 	        LOGGER.debug("Going to start sending packets to: [" + cfg.getPeerIP() + ":"+startPort+"] as a " + (master ? "master" : "slave"));
+	        this.addMessage("Going to start sending packets to: [" + cfg.getPeerIP() + ":"+startPort+"] as a " + (master ? "master" : "slave"));
 	        
 	        // do until user cancels it
 	        this.publishProgress(new DefaultAsyncProgress(0.05, "Starting packet sending", "Starting packet sending"));
-	        while(this.wasCancelled()==false){
+	        for(int iter=0; this.wasCancelled()==false; iter++){
 	        	currentPort = startPort;
 	        	for(int i=0; i<N; i++){
 	        		if (master)
 	        			currentPort = startPort + i;
 	        		else
 	        			currentPort = startPort + i*2;
+	        		
+	        		if (iter==0){
+	        			this.addMessage("Sending message to " + cfg.getPeerIP() + ":" + currentPort);
+	        		}
 	        		
 		        	// enqueue message to send, send same packet multiple times
 		        	cfg.getApi().sendMessage(cfg.getPeerIP(), currentPort, dataMsg);

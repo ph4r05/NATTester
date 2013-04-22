@@ -5,9 +5,16 @@ import org.slf4j.LoggerFactory;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.DialogInterface.OnDismissListener;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +32,9 @@ import com.actionbarsherlock.view.MenuItem;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.MainFragmentActivity.ViewPagerVisibilityListener;
 import com.phoenix.nattester.service.IServerService;
+import com.phoenix.nattester.service.IServerServiceCallback;
+import com.phoenix.nattester.service.ReceivedMessage;
+import com.phoenix.nattester.service.ServerService;
 
 public class ParametersFragment extends SherlockFragment implements AsyncTaskListener, ViewPagerVisibilityListener {
 	  private static final Logger LOGGER = LoggerFactory.getLogger(ParametersFragment.class);
@@ -44,7 +54,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  private InternalProgress iproc;
 
 	  // static application config
-	  final TaskAppConfig cfg = new TaskAppConfig(); 
+	  final TaskAppConfig cfg = new TaskAppConfig();
+	  
+	  protected ProgressDialog progressDialog;
 		
 	  public final void updateCfgFromUI(){
 			try {
@@ -64,6 +76,93 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 				LOGGER.error("Problem during fetching app config", e);
 			}
 		}
+	  
+
+		// Implement public interface for the service
+		private final IServerServiceCallback.Stub binder = new IServerServiceCallback.Stub() {
+			@Override
+			public void messageSent(int success) throws RemoteException {
+				MainFragmentActivity act = (MainFragmentActivity) getActivity();
+				act.messageSent(success);
+			}
+			@Override
+			public void messageReceived(ReceivedMessage msg) throws RemoteException {
+				MainFragmentActivity act = (MainFragmentActivity) getActivity();
+				act.messageReceived(msg);
+			}				
+		};
+		
+		private IServerServiceCallback smallCallback = new IServerServiceCallback() {
+			@Override
+			public IBinder asBinder() {
+				LOGGER.debug("AS binder? returning binder: " + binder);
+				return binder;
+			}
+			@Override
+			public void messageSent(int success) throws RemoteException {
+				MainFragmentActivity act = (MainFragmentActivity) getActivity();
+				act.messageSent(success);
+			}
+			@Override
+			public void messageReceived(ReceivedMessage msg) throws RemoteException {
+				MainFragmentActivity act = (MainFragmentActivity) getActivity();
+				act.messageReceived(msg);
+			}
+		};
+		
+		private IServerService api;
+		private ServiceConnection serviceConnection = new ServiceConnection() {
+			@Override
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				Log.i(TAG, "Service connection established");
+				
+				// that's how we get the client side of the IPC connection
+				api = IServerService.Stub.asInterface(service);
+				try {
+					cfg.setApi(api);
+					
+					LOGGER.debug("Setting callback in activityXX: " + ParametersFragment.this.smallCallback);
+					api.setCallback(ParametersFragment.this.smallCallback);
+					api.startServer();
+					
+					// progress dialog is not needed now
+					progressDialog.setMessage("Done");        		
+					progressDialog.dismiss();
+				} catch (RemoteException e) {
+					LOGGER.error("Failed to add listener", e);
+				}
+			}
+
+			@Override
+			public void onServiceDisconnected(ComponentName name) {
+				Log.i(TAG, "Service connection closed");
+				api=null;
+			}
+		};
+		
+		private void initProgress(String message, String title){
+			progressDialog=new ProgressDialog(getActivity());
+			progressDialog.setMessage(message);
+			progressDialog.setTitle(title);
+			progressDialog.setCancelable(true);
+			progressDialog.setCanceledOnTouchOutside(false);
+			progressDialog.setIndeterminate(true);
+			progressDialog.setOnCancelListener(new OnCancelListener() {
+				@Override
+				public void onCancel(DialogInterface dialog) {
+					LOGGER.debug("Progressbar canceled");
+					getActivity().finish();
+				}
+			});
+			
+			progressDialog.setOnDismissListener(new OnDismissListener() {
+				@Override
+				public void onDismiss(DialogInterface dialog) {
+					LOGGER.debug("Progressbar dismissed");
+				}
+			});
+		}
+		
 	  @Override
 	  public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 	    // Inflate the layout for this fragment
@@ -76,12 +175,31 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  @Override
 	  public void onAttach(Activity activity) {
 	  	  super.onAttach(activity);
+	  	  
+	  	    // service stuff
+			LOGGER.debug("About to start service");
+			
+			Intent intent = new Intent(ServerService.class.getName());
+			this.getActivity().getApplicationContext().startService(intent);
+			this.getActivity().getApplicationContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+			
+			// init progressbar that waits for service to bind
+			this.initProgress("Initializing...", "Starting & connecting to service");
 	  }
 	
 	  @Override
 	  public void onDetach() {
 		  super.onDetach();
 		  LOGGER.debug("prefsDetached");
+		  
+		  try {
+				LOGGER.debug("About to stop service");
+				api.setCallback(null);
+				this.getActivity().getApplicationContext().unbindService(serviceConnection);
+				this.getActivity().getApplicationContext().stopService(new Intent(ServerService.class.getName()));
+			} catch(Exception e){
+				LOGGER.error("Exception during service stopping", e);
+			}
 	  }
 	
 	@Override
@@ -173,7 +291,6 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	                    }
 	            }
 	        });*/
-	        
 	}
 	  
 	  public void taskActionsSetEnabled(boolean enabled){
