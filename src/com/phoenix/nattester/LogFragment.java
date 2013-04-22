@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.view.ContextMenu;
@@ -24,9 +25,13 @@ public class LogFragment extends SherlockFragment implements MessageInterface, G
 	  private static final Logger LOGGER = LoggerFactory.getLogger(LogFragment.class);
 	  public final static String TAG = "LogFragment";
 	  
+	  SharedPreferences prefs;
+	  private boolean autoscroll=true;
+	  
 	  protected EditText eLog;
 	  public static final int LOG_CONTEXT_GROUP = 30;
 	  public static final int LOG_CONTEXT_CLEAR = 30;
+	  public static final int LOG_CONTEXT_AUTOSCROLL  = 31;
 	  
 	  @Override
 	  public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -56,7 +61,11 @@ public class LogFragment extends SherlockFragment implements MessageInterface, G
 		LOGGER.debug("onCreateContextMenu(): LogFragment; id=" + v.getId());
 		if(v.getId() == R.id.txtLog){
 			LOGGER.debug("Long press on log window");
+			
 			menu.add(LOG_CONTEXT_GROUP, LOG_CONTEXT_CLEAR, Menu.NONE, "Clear");
+			android.view.MenuItem autoScroll = menu.add(LOG_CONTEXT_GROUP, LOG_CONTEXT_AUTOSCROLL, Menu.NONE, "Auto Scroll");
+			autoScroll.setCheckable(true);
+			autoScroll.setChecked(autoscroll);
 		} else
 			super.onCreateContextMenu(menu, v, menuInfo);
 	}
@@ -69,6 +78,12 @@ public class LogFragment extends SherlockFragment implements MessageInterface, G
                 case LOG_CONTEXT_CLEAR:
                     LOGGER.debug("Clearing log window");
                     this.clearLog();
+                    return true;
+                case LOG_CONTEXT_AUTOSCROLL:
+                	autoscroll = !autoscroll;
+                	item.setChecked(autoscroll);
+                	
+                	LOGGER.debug("Autoscroll option clicked");
                     return true;
             }
 		}
@@ -115,8 +130,11 @@ public class LogFragment extends SherlockFragment implements MessageInterface, G
 		if (message==null || message.length()<=0) return;
 		eLog.append(message);
 		eLog.append("\n");
-		Editable b = eLog.getText(); 
-		eLog.setSelection(b.length());
+		
+		if (autoscroll){
+			Editable b = eLog.getText(); 
+			eLog.setSelection(b.length());
+		}
 	}
 
 	@Override

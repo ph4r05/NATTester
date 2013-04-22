@@ -44,6 +44,7 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainFragmentActivity.class);
 	public final static String TAG = "MainFragmentActivity";
 	public final static String THIS_FILE = "MainFragmentActivity";
+	public final static String PREFS = "nattester_prefs";
 	private static final Integer TAB_ID_PREFS = 1;
 	private static final Integer TAB_ID_LOG = 2;
 	Integer initTabId = null;
