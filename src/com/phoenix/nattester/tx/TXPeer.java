@@ -6,6 +6,7 @@ public class TXPeer {
 	private int port;
 	private String id;
 	private String natType;
+	private int natSymmetricIncrement=1;
 	public String getIP() {
 		return IP;
 	}
@@ -31,6 +32,13 @@ public class TXPeer {
 	public void setNatType(String natType) {
 		this.natType = natType;
 	}
+	public int getNatSymmetricIncrement() {
+		return natSymmetricIncrement;
+	}
+	public void setNatSymmetricIncrement(int natSymmetricIncrement) {
+		this.natSymmetricIncrement = natSymmetricIncrement;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -71,9 +79,8 @@ public class TXPeer {
 	}
 	@Override
 	public String toString() {
-		return "TXPeer [IP=" + IP + ", port=" + port + ", id=" + id + ", opt="
-				+ natType + "]";
-	}
-	
-	
+		return "TXPeer [IP=" + IP + ", port=" + port + ", id=" + id
+				+ ", natType=" + natType + ", natSymmetricIncrement="
+				+ natSymmetricIncrement + "]";
+	}	
 }

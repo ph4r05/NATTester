@@ -86,11 +86,12 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getSupportMenuInflater().inflate(R.menu.activity_main, menu);
+		//getSupportMenuInflater().inflate(R.menu.activity_main, menu);
 		
-		// Old SDK function before Sherlock was used
-		//getMenuInflater().inflate(R.menu.activity_main, menu);
-		return true;
+		//// Old SDK function before Sherlock was used
+		////getMenuInflater().inflate(R.menu.activity_main, menu);
+		//return true;
+		return super.onCreateOptionsMenu(menu);
 	}
 
 	@Override

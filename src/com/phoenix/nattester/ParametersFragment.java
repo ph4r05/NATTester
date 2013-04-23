@@ -205,6 +205,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	@Override
 	  public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 		  super.onCreateOptionsMenu(menu, inflater);
+		  inflater.inflate(R.menu.actionmenu, menu);
 	  }
 	
 	  @Override
@@ -214,12 +215,27 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	
 	  @Override
 	  public boolean onOptionsItemSelected(MenuItem item) {
-		  return super.onOptionsItemSelected(item);
+		  switch (item.getItemId()) {
+	        case R.id.menu_settings:
+	            LOGGER.debug("Options: settings");
+	            return true;
+	        case R.id.menu_nat_timeout:
+	        	LOGGER.debug("Options: NAT timeout");
+	        	startNATtimeoutTask(1);
+	            return true;
+	        case R.id.menu_port_timeout:
+	        	LOGGER.debug("Options: Port timeout");
+	        	startNATtimeoutTask(2);
+	            return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	     }
 	  }
 	
 	  @Override
 	  public void onViewCreated(View view, Bundle savedInstanceState) {
 		  super.onViewCreated(view, savedInstanceState);
+		  this.setHasOptionsMenu(true);
 		  LOGGER.debug("OnViewCreated - logger");
 		
 		  // initialize controls
@@ -469,6 +485,35 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
               	Log.e(TAG, "Exception", e);
               }
           }
+	  }
+	  
+	  private void startNATtimeoutTask(int type){
+		  try{
+            	final NATTimeoutTask task = new NATTimeoutTask(); 	                    	
+            	task.setContext(getActivity());
+            	task.setDialog(null);
+            	task.setCallback(iproc);
+            	task.setGuiLogger((GuiLogger)getActivity());
+            	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling NAT detect task");
+							task.cancel(false);
+						}
+					});
+            	
+            	// parameters
+            	updateCfgFromUI();
+            	
+            	// execute async task
+            	iproc.start();
+            	TaskAppConfigNATTimeout cfgExt = new TaskAppConfigNATTimeout();
+            	cfgExt.setCfg(cfg);
+            	cfgExt.setTestType(type);
+            	task.execute(cfgExt);
+            }catch(Exception e){
+            	Log.e(TAG, "Exception", e);
+            }
 	  }
 	  
 	  public void setApi(IServerService api){

@@ -10,7 +10,6 @@ import java.net.UnknownHostException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import android.R.bool;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -33,7 +32,7 @@ import com.phoenix.nattester.tx.TXResponse;
  * docs: http://developer.android.com/reference/android/os/AsyncTask.html
  */
 public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exception> implements OnKeyListener, MessageInterface {
-	private static final Logger LOGGER = LoggerFactory.getLogger(GetPublicIPTask.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TraverseTask.class);
 	public final static String TAG = "TraverseTask";
 	
 	// where to publish progress

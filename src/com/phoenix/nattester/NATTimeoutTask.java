@@ -1,7 +1,5 @@
 package com.phoenix.nattester;
 
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.slf4j.Logger;
@@ -20,8 +18,8 @@ import android.view.KeyEvent;
 
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 
-import de.javawi.jstun.test.DiscoveryInfo;
-import de.javawi.jstun.test.DiscoveryTest;
+import de.javawi.jstun.test.BindingLifetimeTest;
+import de.javawi.jstun.test.ExternalPortBindingLifetimeTest;
 
 /**
  * Async task for NAT detection	
@@ -29,9 +27,10 @@ import de.javawi.jstun.test.DiscoveryTest;
  * @author ph4r05
  * docs: http://developer.android.com/reference/android/os/AsyncTask.html
  */
-public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exception> implements OnKeyListener, MessageInterface {
-	private static final Logger LOGGER = LoggerFactory.getLogger(NATDetectTask.class);
-	public final static String TAG = "NATDetectTask";
+public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAsyncProgress, Exception> 
+	implements OnKeyListener, MessageInterface, TaskCancelInfo {
+	private static final Logger LOGGER = LoggerFactory.getLogger(NATTimeoutTask.class);
+	public final static String TAG = "NATTimeoutTask";
 	
 	// where to publish progress
 	private ProgressDialog dialog = null;
@@ -42,91 +41,40 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 	
 	private AsyncTaskListener callback;
 	private GuiLogger guiLogger;
-	private TaskAppConfig cfg;
+	private TaskAppConfigNATTimeout cfg;
 	private String publicIP=null;
 	
+	private ExternalPortBindingLifetimeTest dt;
+	
 	@Override
-	protected Exception doInBackground(TaskAppConfig... arg0) {
+	protected Exception doInBackground(TaskAppConfigNATTimeout... arg0) {
 		if (arg0.length==0){
 			throw new IllegalArgumentException("Empty configuration");
 		}
 		
 		this.cfg = arg0[0];
-		int timeoutInitValue = 300;
-		int localPort = 34567;
-		this.publishProgress(new DefaultAsyncProgress(0.05, "Running tests"));
+		this.publishProgress(new DefaultAsyncProgress(0.05, "Initializing"));
 		
 		try {
-			// UDP datagram
-			DatagramSocket socketTest1 = null;
-			String address2connect = cfg.getStunServer();
-	        InetAddress address2connectInet;
-			address2connectInet = InetAddress.getByName(cfg.getStunServer());
-        
-	        // obtain private IP
-	        String localIP = Utils.getIPAddress(true);
-	        InetAddress iaddress = InetAddress.getByName(localIP);
-	        LOGGER.debug("Local IP address obtained: " + localIP);
-	        
-	        DiscoveryTest dt = new DiscoveryTest(iaddress, address2connect, cfg.getStunPort());
+	        dt = new ExternalPortBindingLifetimeTest(cfg.getCfg().getStunServer(), cfg.getCfg().getStunPort(), 5060);
 	        dt.setCallback(this);
-	        dt.setTimeoutInitValue(timeoutInitValue);
-	        dt.setMa(null);
-	        dt.setCa(null);
-	        dt.setNodeNatted(true);
-	        dt.setSocketTest1(null);
-			dt.setDi(new DiscoveryInfo(iaddress));
+	        dt.setCancelInfo(this);
 
-			this.publishProgress(new DefaultAsyncProgress(0.2, "Test 1: isnodeNAT-ed?"));
+			this.publishProgress(new DefaultAsyncProgress(0.2, "Binding life time test"));
 			if (this.wasCancelled()) return null;
-			if (dt.test1()) {
-				if (this.wasCancelled()) return null;
-				this.publishProgress(new DefaultAsyncProgress(0.3, "Test 2: address/port (CONE) restricted?"));
-				
-				if (dt.test2()) {
-					if (this.wasCancelled()) return null;
-					this.publishProgress(new DefaultAsyncProgress(0.4, "Test 1 redo: restore changed IP"));
-					
-					if (dt.test1Redo()) {
-						if (this.wasCancelled()) return null;
-						this.publishProgress(new DefaultAsyncProgress(0.5, "Test 3: is port restricted?"));
-						
-						dt.test3();
-					}
-				}
+			
+			if (cfg.getTestType()==1){
+				dt.setUpperBinarySearchLifetime(60000);
+				dt.test();
+			} else {
+				dt.setUpperBinarySearchLifetime(280000);
+				dt.test2();
 			}
 			
-	        try {
-	            if (socketTest1!=null 
-	            		&& (socketTest1.isBound() || socketTest1.isConnected()) 
-	            		&& socketTest1.isClosed()) 
-	            	socketTest1.close();
-	        } catch(Exception e){
-	            ;
-	        }
-	        
-	        // detect symmetric NAT IP/port sensitivity
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.6, "Test portDeta: switchIP, fast"));
-	        dt.testSymmetricPortDelta(3480, 10, 34567, 0, true);
-	        
-	        // finally only port switching
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.7, "Test portDeta: sameIP, fast"));
-	        dt.testSymmetricPortDelta(3500, 10, 34567, 100, false);
-	        
-	        // once again with 1 second pause between scans
-	        if (this.wasCancelled()) return null;
-	        this.publishProgress(new DefaultAsyncProgress(0.8, "Test portDeta: switch IP, long"));
-	        dt.testSymmetricPortDelta(3490, 10, 34567, 1000, true);
-	        
-	        if (this.wasCancelled()) return null;
-	        DiscoveryInfo di = dt.test();
-	        Log.i(TAG, "DiscoveryInfo: " + di.toString());
-	        
-	        this.publishProgress(new DefaultAsyncProgress(1.0, "Done"));
+	        this.publishProgress(new DefaultAsyncProgress(1.0, "Done; lifetime=" + dt.getLifetime()));
 			Log.i(TAG, "Finished properly");
 			
+			if (this.wasCancelled()) return null;
 		} catch (UnknownHostException e1) {
 			Log.e(TAG, "Unknown host excepion", e1);
 		} catch (RuntimeException re){
@@ -141,7 +89,7 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 		return null;
 	}
 	
-	protected boolean wasCancelled(){
+	public synchronized boolean wasCancelled(){
 		boolean canceled = this.isCancelled();
 		if (canceled==true){
 			LOGGER.debug("NAT detect was cancelled");
@@ -154,6 +102,10 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 	@Override
 	protected void onCancelled() {
 		LOGGER.debug("NAT detect task; onCancelled()");
+		if (this.dt!=null){
+			this.dt.cancel();
+		}
+		
 		super.onCancelled();
 	}
 
