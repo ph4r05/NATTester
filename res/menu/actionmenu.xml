@@ -1,0 +1,27 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menu_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/menu_settings"/>
+    
+    <item
+        android:id="@+id/menu_nat_timeout"
+        android:orderInCategory="101"
+        android:showAsAction="never"
+        android:title="@string/menu_nat_timeout"/>
+    
+    <item
+        android:id="@+id/menu_port_timeout"
+        android:orderInCategory="102"
+        android:showAsAction="never"
+        android:title="@string/menu_port_timeout"/>
+    
+    <item
+        android:id="@+id/menu_random"
+        android:orderInCategory="103s"
+        android:showAsAction="never"
+        android:title="@string/menu_random"/>
+
+</menu>

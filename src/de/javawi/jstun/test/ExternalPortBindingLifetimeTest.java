@@ -349,6 +349,7 @@ public class ExternalPortBindingLifetimeTest {
 				timer.schedule(task, binarySearchLifetime);
 				
 				LOGGER.debug("Timer scheduled: " + binarySearchLifetime + ".");
+				guiLog("Timer scheduled: " + binarySearchLifetime + ".");
 				guiLog("Lifetime update: " + lifetime + ".\n");
 			} else {
 				completed = true;
