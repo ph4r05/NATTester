@@ -76,13 +76,14 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		try {
 			// local IP - stored in results file
 			String localIP = null;
+			boolean dump2file = !(cfg.isNoRecv() || cfg.isNoStun());
 			
 	        // create result task - for storing results to file
 			rtask = new ResultsTask();
 			rtask.setCallback(this.callback);
 			rtask.setContext(this.context);
 			rtask.setResources(this.resources);
-			executeAsyncTask(rtask, cfg.getCfg());
+			if (dump2file) executeAsyncTask(rtask, cfg.getCfg());
 			this.publishProgress(new DefaultAsyncProgress(0.05, "Rtask started, scanning..."));
 			
 			// here create scanning probes, in this design, we have only 1 scanning probe, us
@@ -94,9 +95,12 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			p.setSocketTimeout(300);
 			p.setNoRecv(cfg.isNoRecv());
 			p.setNoStun(cfg.isNoStun());
-
+			
 			Random rnd = new Random(System.currentTimeMillis());
 			int stunPortIdx = 5 + (rnd.nextInt() % (cfg.getStunPorts()/2)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
+			
+			long iterCount = 0;
+			long lastDump = 0;
 			while(this.wasCancelled()==false){
 				// cycle over STUN ports to eliminate already opened ports to STUN server - we would like to
 				// avoid using already opened ports and thus doing side effect - keep alive on them
@@ -108,22 +112,36 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 				
 				// iterate over all source ports here
 				p.setExtPort(stunPort);
-				for(int srcPort=1025; srcPort<=65535; srcPort++){
+				for(int srcPort=1025; srcPort<=65535; srcPort++, iterCount++){
 					if (srcPort==ServerService.srvPort) continue;
 					if (this.wasCancelled()) break;
 					p.setIntPort(srcPort);
 					
 					ProbeTaskReturn tr = this.probeScan(p);
 					tr.setLocalAddress(localIP);
-					rtask.addResult(tr);
+					if (dump2file) rtask.addResult(tr);
 					
-					if (cfg.isNoRecv() == false || (cfg.isNoRecv() && (srcPort % 500) == 0))
-					this.publishProgress(new DefaultAsyncProgress(0.5, "SrcPort="+srcPort+"; stunPort=" + stunPort, 
+					// do dump to GUI?
+					boolean dump2GUI=false;
+					if (cfg.isNoRecv()){
+						if (iterCount > 50){
+							iterCount=0;
+							long curtime = System.currentTimeMillis();
+							dump2GUI = (curtime - lastDump) >= 3000;
+						}
+					}
+					
+					if (cfg.isNoRecv() == false || (cfg.isNoRecv() && dump2GUI)){
+						lastDump = System.currentTimeMillis();
+						this.publishProgress(new DefaultAsyncProgress(0.5, "SrcPort="+srcPort+"; stunPort=" + stunPort, 
 							"localIP:port="+localIP+":"+srcPort
 							+"; stunPort=" + stunPort 
 							+"; mappedPort=" + tr.getMappedPort()
 							+"; error=" + tr.isError()
 							));
+					}
+					
+					if (!dump2file) tr=null;
 				}
 			}		
 			
@@ -160,7 +178,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		ProbeTaskReturn tr = new ProbeTaskReturn(p);
 		tr.setInitTime(System.currentTimeMillis());
 		
-		byte buff[] = new byte[512];
 		final int recvRetryCount = 10;
 		final int sendRetryCount = 7;
 		
@@ -184,10 +201,10 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		if (p.isNoStun()){
 			// Debug - collection is on server side, so help with it.
 			StringBuilder sb = new StringBuilder();
-			sb.append("|||||time=").append(System.currentTimeMillis())
-			  .append(";sport=").append(p.getIntPort())
-			  .append(";dport=").append(p.getExtPort())
-			  .append("|||||");
+			sb.append("||t=").append(System.currentTimeMillis())
+			  .append(";s=").append(p.getIntPort())
+			  .append(";d=").append(p.getExtPort())
+			  .append("||");
 			data = sb.toString().getBytes();
 		} else {
 			// STUN request
@@ -214,7 +231,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 				tr.setSendRetryCnt(sendRetryCount - sendRetry);
 				sent=true;
 			} catch(IOException io){
-				LOGGER.warn("IOException during send", io);
+				LOGGER.warn("IOException during send; retryCnt=" + sendRetry, io);
 				sendRetry-=1;
 				tr.setSendRetryCnt(sendRetryCount - sendRetry);
 				
@@ -224,6 +241,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					tr.setErrReason("Send retrycount expired");
 					
 					try {
+						data=null;
 						socket.close();
 					}catch(Exception e){
 						LOGGER.debug("Exception in closing socket", e);
@@ -236,6 +254,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		
 		if (p.isNoRecv() || p.isNoStun()){
 			try {
+				data=null;
 				socket.close();
 			}catch(Exception e){
 				LOGGER.debug("Exception in closing socket", e);
@@ -246,6 +265,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		}
 		
 		// RECEIVE
+		byte buff[] = new byte[512];
 		MessageHeader receiveMH = new MessageHeader();
 		int retryCount=recvRetryCount;
 		boolean received = false;
@@ -273,6 +293,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					tr.setErrReason("Receive retrycount expired");
 					
 					try {
+						buff=null;
 						socket.close();
 					}catch(Exception ex){
 						LOGGER.debug("Exception in closing socket", ex);
@@ -292,6 +313,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			tr.setErrReason("stun.reply.ErrorCode is null");
 			
 			try {
+				buff=null;
 				socket.close();
 			}catch(Exception e){
 				LOGGER.debug("Exception in closing socket", e);
@@ -305,6 +327,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			tr.setErrReason("stun.reply.MappedAddress is null");
 			
 			try {
+				buff=null;
 				socket.close();
 			}catch(Exception e){
 				LOGGER.debug("Exception in closing socket", e);
@@ -320,6 +343,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		tr.setMappedAddress(ma.getAddress().toString());		
 		
 		try {
+			buff=null;
 			socket.close();
 		}catch(Exception e){
 			LOGGER.debug("Exception in closing socket", e);

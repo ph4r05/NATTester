@@ -99,6 +99,7 @@ public class ResultsTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, 
 		          .append(e.getErrCode()).append(";")
 		          .append(e.getErrReason()).append("\n");
 		        fileWriter.write(sb.toString());
+		        e=null;
 				
 				if (this.wasCancelled()) break;
 				Thread.sleep(250);
