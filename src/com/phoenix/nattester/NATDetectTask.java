@@ -53,15 +53,13 @@ public class NATDetectTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress
 		
 		this.cfg = arg0[0];
 		int timeoutInitValue = 300;
-		int localPort = 34567;
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Running tests"));
 		
 		try {
 			// UDP datagram
 			DatagramSocket socketTest1 = null;
 			String address2connect = cfg.getStunServer();
-	        InetAddress address2connectInet;
-			address2connectInet = InetAddress.getByName(cfg.getStunServer());
+	        //InetAddress address2connectInet = InetAddress.getByName(cfg.getStunServer());
         
 	        // obtain private IP
 	        String localIP = Utils.getIPAddress(true);

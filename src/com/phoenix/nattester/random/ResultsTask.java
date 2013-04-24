@@ -1,6 +1,9 @@
-package com.phoenix.nattester;
+package com.phoenix.nattester.random;
 
-import java.net.UnknownHostException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +16,15 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.DialogInterface.OnKeyListener;
 import android.content.res.Resources;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.phoenix.nattester.DefaultAsyncProgress;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
-
-import de.javawi.jstun.test.ExternalPortBindingLifetimeTest;
+import com.phoenix.nattester.MessageInterface;
+import com.phoenix.nattester.TaskAppConfig;
+import com.phoenix.nattester.TaskCancelInfo;
 
 /**
  * Async task for NAT detection	
@@ -26,10 +32,10 @@ import de.javawi.jstun.test.ExternalPortBindingLifetimeTest;
  * @author ph4r05
  * docs: http://developer.android.com/reference/android/os/AsyncTask.html
  */
-public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAsyncProgress, Exception> 
+public class ResultsTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exception> 
 	implements OnKeyListener, MessageInterface, TaskCancelInfo {
-	private static final Logger LOGGER = LoggerFactory.getLogger(NATTimeoutTask.class);
-	public final static String TAG = "NATTimeoutTask";
+	private static final Logger LOGGER = LoggerFactory.getLogger(ResultsTask.class);
+	public final static String TAG = "ResultsTask";
 	
 	// where to publish progress
 	private ProgressDialog dialog = null;
@@ -39,14 +45,16 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 	private Resources resources = null;
 	
 	private AsyncTaskListener callback;
-	private GuiLogger guiLogger;
-	private TaskAppConfigNATTimeout cfg;
+	@SuppressWarnings("unused")
+	private TaskAppConfig cfg;
 	private String publicIP=null;
 	
-	private ExternalPortBindingLifetimeTest dt;
+	// primary attribute here - from this queue will data be dumped to a file
+	private ConcurrentLinkedQueue<ProbeTaskReturn> queue = null;
+	FileWriter fileWriter = null;
 	
 	@Override
-	protected Exception doInBackground(TaskAppConfigNATTimeout... arg0) {
+	protected Exception doInBackground(TaskAppConfig... arg0) {
 		if (arg0.length==0){
 			throw new IllegalArgumentException("Empty configuration");
 		}
@@ -54,38 +62,78 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 		this.cfg = arg0[0];
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Initializing"));
 		
+		// Get the directory for the user's public pictures directory. 
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "random-"+System.currentTimeMillis()+".txt");
+        LOGGER.debug("File is: " + file.getAbsolutePath() + "; is file=" + file.isFile());
 		try {
-	        dt = new ExternalPortBindingLifetimeTest(cfg.getCfg().getStunServer(), cfg.getCfg().getStunPort(), 5060);
-	        dt.setCallback(this);
-	        dt.setCancelInfo(this);
-
-			this.publishProgress(new DefaultAsyncProgress(0.2, "Binding life time test"));
-			if (this.wasCancelled()) return null;
-			
-			if (cfg.getTestType()==1){
-				dt.setUpperBinarySearchLifetime(60000);
-				dt.test();
-			} else {
-				dt.setUpperBinarySearchLifetime(280000);
-				dt.test2();
-			}
-			
-	        this.publishProgress(new DefaultAsyncProgress(1.0, "Done; lifetime=" + dt.getLifetime()));
-			Log.i(TAG, "Finished properly");
-			
-			if (this.wasCancelled()) return null;
-		} catch (UnknownHostException e1) {
-			Log.e(TAG, "Unknown host excepion", e1);
-		} catch (RuntimeException re){
-			Log.e(TAG, "RException", re);
-			return re;
-		} catch (Exception e) {
-			Log.e(TAG, "Exception", e);
+			fileWriter = new FileWriter(file, true);
+		} catch (FileNotFoundException e) {
+			LOGGER.error("File not found exception", e);
+			return e;
+		} catch (Exception e){
+			LOGGER.error("Generic exception", e);
 			return e;
 		}
 		
-		LOGGER.debug("NAT task finishing");
-		return null;
+		// main while loop - dumping to the file
+		Exception toReturn = null;
+		while(this.queue.isEmpty()==false || this.wasCancelled()==false){
+			try {
+		        ProbeTaskReturn e = this.queue.poll();
+		        if (e==null) continue;
+				
+		        // write elem to the file
+		        StringBuilder sb = new StringBuilder();
+		        sb.append(e.getInitTime()).append(";")
+		          .append(e.getSendTime()).append(";")
+		          .append(e.getRecvTime()).append(";")
+		          .append(e.getLocalAddress()).append(";")
+		          .append(e.getSrcPort()).append(";")
+		          .append(e.getDstPort()).append(";")
+		          .append(e.getMappedAddress()).append(";")
+		          .append(e.getMappedPort()).append(";")
+		          .append(e.getSendRetryCnt()).append(";")
+		          .append(e.getRecvRetryCnt()).append(";")
+		          .append(e.isFinished()).append(";")
+		          .append(e.isError()).append(";")
+		          .append(e.getErrCode()).append(";")
+		          .append(e.getErrReason()).append("\n");
+		        fileWriter.write(sb.toString());
+				
+				if (this.wasCancelled()) break;
+				Thread.sleep(250);
+			} catch (InterruptedException e1) {
+				Log.e(TAG, "Interrupted exception");
+				toReturn=e1;
+				break;
+			} catch (Exception e) {
+				Log.e(TAG, "Exception", e);
+				toReturn=e;
+				break;
+			}
+		} 
+		
+		// flush & close
+		try {
+			fileWriter.flush();
+			fileWriter.close();
+		} catch(Exception e){
+			Log.e(TAG, "Exception during file writer closing", e);
+		}
+
+		this.publishProgress(new DefaultAsyncProgress(1.0, "Done;"));
+		Log.i(TAG, "Finished properly");
+		
+		return toReturn;
+	}
+	
+	/**
+	 * Adds new record to write queue
+	 * @param e
+	 */
+	public void addResult(ProbeTaskReturn e){
+		if (this.queue==null) throw new NullPointerException("Queue is not initiated");
+		this.queue.add(e);
 	}
 	
 	public synchronized boolean wasCancelled(){
@@ -100,11 +148,7 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 	
 	@Override
 	protected void onCancelled() {
-		LOGGER.debug("NAT detect task; onCancelled()");
-		if (this.dt!=null){
-			this.dt.cancel();
-		}
-		
+		LOGGER.debug("NAT detect task; onCancelled()");		
 		super.onCancelled();
 	}
 
@@ -115,8 +159,9 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 	 * @param f
 	 */
 	@Override
-	protected void onPreExecute() {		
-		// setup dialog
+	protected void onPreExecute() {
+		queue = new ConcurrentLinkedQueue<ProbeTaskReturn>();
+		
 		if (dialog!=null){
 			dialog.setProgress(0);
 			dialog.setMessage("Initialized");
@@ -200,7 +245,6 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 	    return true;
 	  }
 	  
-
 	public ProgressDialog getDialog() {
 		return dialog;
 	}
@@ -235,15 +279,7 @@ public class NATTimeoutTask extends AsyncTask<TaskAppConfigNATTimeout, DefaultAs
 
 	@Override
 	public void addMessage(String message) {
-		this.publishProgress(new DefaultAsyncProgress(0.5, "Update from NATTimeout", message));
-	}
-
-	public GuiLogger getGuiLogger() {
-		return guiLogger;
-	}
-
-	public void setGuiLogger(GuiLogger guiLogger) {
-		this.guiLogger = guiLogger;
+		this.publishProgress(new DefaultAsyncProgress(0.5, "Update from NATdetect", message));
 	}
 }
 

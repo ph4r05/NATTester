@@ -8,10 +8,10 @@ import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -31,6 +31,8 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.MainFragmentActivity.ViewPagerVisibilityListener;
+import com.phoenix.nattester.random.RandomTask;
+import com.phoenix.nattester.random.RandomTaskParam;
 import com.phoenix.nattester.service.IServerService;
 import com.phoenix.nattester.service.IServerServiceCallback;
 import com.phoenix.nattester.service.ReceivedMessage;
@@ -77,7 +79,6 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 			}
 		}
 	  
-
 		// Implement public interface for the service
 		private final IServerServiceCallback.Stub binder = new IServerServiceCallback.Stub() {
 			@Override
@@ -227,6 +228,10 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	        	LOGGER.debug("Options: Port timeout");
 	        	startNATtimeoutTask(2);
 	            return true;
+	        case R.id.menu_random:
+	        	LOGGER.debug("Options: Random collection");
+	        	startRandomTask();
+	        	return true;
 	        default:
 	            return super.onOptionsItemSelected(item);
 	     }
@@ -319,6 +324,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	   * Starts internal progressbar with corresponding message
 	   */
 	  private class InternalProgress implements AsyncTaskListener{
+		  @SuppressWarnings("unused")
 		  private boolean cancelable=true;
 		  private boolean canceled=false;
 		  private boolean running=false;
@@ -352,7 +358,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 				});
 		  }
 		  
+		  @SuppressWarnings("unused")
 		  public boolean isCanceled(){ return canceled; }
+		  @SuppressWarnings("unused")
 		  public boolean isRunning(){ return running; }
 		  public void setOnCancelListener(OnCancelListener cancelListener){
 			  this.cancelListener = cancelListener;
@@ -515,6 +523,37 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             	Log.e(TAG, "Exception", e);
             }
 	  }
+	  
+	  private void startRandomTask(){
+		  try{
+            	final RandomTask task = new RandomTask(); 	                    	
+            	task.setContext(getActivity());
+            	task.setDialog(null);
+            	task.setCallback(iproc);
+            	task.setResources(getActivity().getResources());
+            	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling NAT Random task");
+							task.cancel(false);
+						}
+					});
+            	
+            	// parameters
+            	updateCfgFromUI();
+            	
+            	// execute async task
+            	iproc.start();
+            	
+            	RandomTaskParam params = new RandomTaskParam();
+            	params.setCfg(cfg);
+            	params.setStunPorts(99);
+            	task.execute(params);
+            }catch(Exception e){
+            	Log.e(TAG, "Exception in RandomTask()", e);
+            }
+	  }
+	  
 	  
 	  public void setApi(IServerService api){
 		  LOGGER.debug("Setting api from acctivity");

@@ -15,6 +15,7 @@ import android.os.RemoteException;
 
 public class ServerService extends Service {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ServerService.class);
+	public static final int srvPort=23457;
 	
 	private IServerServiceCallback callback=null;
 	private DatagramSocket socket;
@@ -53,13 +54,13 @@ public class ServerService extends Service {
 				}
 				
 				// open socket, bind it and set timeout on it
-				socket = new DatagramSocket(23457);
+				socket = new DatagramSocket(srvPort);
 				socket.setReuseAddress(true);
                 socket.setSoTimeout(300);
 				
 				// prepare sender and listener threads
-				sender = new ServerSender(23457, socket);
-				listener = new ServerListener(23457, socket);
+				sender = new ServerSender(srvPort, socket);
+				listener = new ServerListener(srvPort, socket);
 				
 				LOGGER.debug("Callback in service: " + ServerService.this.callback);
 				sender.setCallback(ServerService.this.callback);

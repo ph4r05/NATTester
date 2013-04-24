@@ -54,7 +54,7 @@ public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress,
 		}
 		
 		this.cfg = arg0[0];
-		int timeoutInitValue = 1000*60;	// transaction timeout value in ms - one minute
+		//int timeoutInitValue = 1000*60;	// transaction timeout value in ms - one minute
 		int localPort = 34567;
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Running tests"));
 		String logMsg="";
@@ -76,7 +76,6 @@ public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress,
 	        //
 	        
 	        // here is stored log from scan - to detect address/port sensitivity
-	        int timeSinceFirstTransmission = 0;
 	        int timeout = 300;
 	        long txStartTime = System.currentTimeMillis();
 	        

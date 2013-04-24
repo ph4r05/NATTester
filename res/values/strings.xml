@@ -5,5 +5,5 @@
     <string name="hello_world">Hello world!</string>
     <string name="menu_nat_timeout">NAT timeout</string>
     <string name="menu_port_timeout">Port timeout</string>
-    <string name="menu_random"/>
+    <string name="menu_random">Random</string>
 </resources>

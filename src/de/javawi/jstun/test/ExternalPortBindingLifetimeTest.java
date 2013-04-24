@@ -227,6 +227,7 @@ public class ExternalPortBindingLifetimeTest {
 				DatagramPacket send = new DatagramPacket(data, data.length, InetAddress.getByName(stunServer), secport);
 				socket.send(send);
 				socket.send(send);
+				socket.close();
 				
 				LOGGER.debug("Binding Request sent.");
 				guiLog("Binding Request sent; responseAddress:port=" + ma.toString() + "; sa=" + sa.toString());

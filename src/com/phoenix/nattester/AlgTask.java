@@ -1,8 +1,5 @@
 package com.phoenix.nattester;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,18 +45,11 @@ public class AlgTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exce
 		}
 		
 		this.cfg = arg0[0];
-		int timeoutInitValue = 300;
-		int localPort = 23456;
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Running connection algorithm"));
 		
-		try {
-			// UDP datagram
-			String address2connect = cfg.getPeerIP();
-	        InetAddress address2connectInet = InetAddress.getByName(cfg.getPeerIP());
-        
+		try {        
 	        // obtain private IP
 	        String localIP = Utils.getIPAddress(true);
-	        InetAddress iaddress = InetAddress.getByName(localIP);
 	        LOGGER.debug("Local IP address obtained: " + localIP);
 	        
 	        if (cfg.getApi()==null){
@@ -106,11 +96,6 @@ public class AlgTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, Exce
 	        
 	        this.publishProgress(new DefaultAsyncProgress(1.0, "Done"));
 			Log.i(TAG, "Finished properly");
-		} catch (UnknownHostException e1) {
-			Log.e(TAG, "Unknown host excepion", e1);
-		} catch (RuntimeException re){
-			Log.e(TAG, "RException", re);
-			return re;
 		} catch (Exception e) {
 			Log.e(TAG, "Exception", e);
 			return e;
