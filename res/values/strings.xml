@@ -6,4 +6,5 @@
     <string name="menu_nat_timeout">NAT timeout</string>
     <string name="menu_port_timeout">Port timeout</string>
     <string name="menu_random">Random</string>
+    <string name="menu_random_norecv">RandomScan</string>
 </resources>

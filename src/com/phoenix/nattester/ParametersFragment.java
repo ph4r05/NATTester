@@ -230,7 +230,11 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	            return true;
 	        case R.id.menu_random:
 	        	LOGGER.debug("Options: Random collection");
-	        	startRandomTask();
+	        	startRandomTask(false);
+	        	return true;
+	        case R.id.menu_random_norecv:
+	        	LOGGER.debug("Options: Random collection scan");
+	        	startRandomTask(true);
 	        	return true;
 	        default:
 	            return super.onOptionsItemSelected(item);
@@ -524,7 +528,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             }
 	  }
 	  
-	  private void startRandomTask(){
+	  private void startRandomTask(boolean noRecv){
 		  try{
             	final RandomTask task = new RandomTask(); 	                    	
             	task.setContext(getActivity());
@@ -545,9 +549,15 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             	// execute async task
             	iproc.start();
             	
+            	if (noRecv){
+            		this.onTaskUpdate(new DefaultAsyncProgress(1, "Starting noRecv scan", 
+            				"Starting noRecv scan; TcpDump filter on server side: \ntcpdump -nn -v -i eth0 'udp and host PUBLIC and not port 5060'"), 1);
+            	}
+            	
             	RandomTaskParam params = new RandomTaskParam();
             	params.setCfg(cfg);
             	params.setStunPorts(99);
+            	params.setNoRecv(noRecv);
             	task.execute(params);
             }catch(Exception e){
             	Log.e(TAG, "Exception in RandomTask()", e);

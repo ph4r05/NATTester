@@ -92,6 +92,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			p.setCfg(cfg.getCfg());
 			p.setStunAddressCached(InetAddress.getByName(cfg.getCfg().getStunServer()));
 			p.setSocketTimeout(300);
+			p.setNoRecv(cfg.isNoRecv());
 
 			Random rnd = new Random(System.currentTimeMillis());
 			int stunPortIdx = 5 + (rnd.nextInt() % (cfg.getStunPorts()/2)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
@@ -115,6 +116,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					tr.setLocalAddress(localIP);
 					rtask.addResult(tr);
 					
+					if (cfg.isNoRecv() == false || (cfg.isNoRecv() && (srcPort % 100) == 0))
 					this.publishProgress(new DefaultAsyncProgress(0.5, "SrcPort="+srcPort+"; stunPort=" + stunPort, 
 							"localIP:port="+localIP+":"+srcPort
 							+"; stunPort=" + stunPort 
@@ -159,7 +161,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		
 		byte buff[] = new byte[512];
 		final int recvRetryCount = 10;
-		final int sendRetryCount = 5;
+		final int sendRetryCount = 7;
 		
 		// prepare sending & receiving socket
 		DatagramSocket socket = null;
@@ -219,7 +221,18 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 				}
 			}
 		}
-	
+		
+		if (p.isNoRecv()){
+			try {
+				socket.close();
+			}catch(Exception e){
+				LOGGER.debug("Exception in closing socket", e);
+			}
+			
+			tr.setError(false);
+			return tr;
+		}
+		
 		// RECEIVE
 		MessageHeader receiveMH = new MessageHeader();
 		int retryCount=recvRetryCount;

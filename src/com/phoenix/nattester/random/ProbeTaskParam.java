@@ -10,6 +10,7 @@ public class ProbeTaskParam {
 	private int intPort;
 	private InetAddress stunAddressCached;
 	private int socketTimeout=300;
+	private boolean noRecv=false;
 	public TaskAppConfig getCfg() {
 		return cfg;
 	}
@@ -39,6 +40,12 @@ public class ProbeTaskParam {
 	}
 	public void setSocketTimeout(int socketTimeout) {
 		this.socketTimeout = socketTimeout;
+	}
+	public boolean isNoRecv() {
+		return noRecv;
+	}
+	public void setNoRecv(boolean noRecv) {
+		this.noRecv = noRecv;
 	}
 	
 }
