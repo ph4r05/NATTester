@@ -93,6 +93,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			p.setStunAddressCached(InetAddress.getByName(cfg.getCfg().getStunServer()));
 			p.setSocketTimeout(300);
 			p.setNoRecv(cfg.isNoRecv());
+			p.setNoStun(cfg.isNoStun());
 
 			Random rnd = new Random(System.currentTimeMillis());
 			int stunPortIdx = 5 + (rnd.nextInt() % (cfg.getStunPorts()/2)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
@@ -100,7 +101,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 				// cycle over STUN ports to eliminate already opened ports to STUN server - we would like to
 				// avoid using already opened ports and thus doing side effect - keep alive on them
 				stunPortIdx = (stunPortIdx + 1) % cfg.getStunPorts();
-				int stunPort = cfg.getCfg().getStunPort() + stunPortIdx;
+				int stunPort = (cfg.getCfg().getStunPort() + stunPortIdx) % 65536;
 				localIP = Utils.getIPAddress(true);
 				
 				this.publishProgress(new DefaultAsyncProgress(0.5, "New cycle of scan, stunPort=" + stunPort, "New cycle of scan, stunPort=" + stunPort + "; localIP=" + localIP));
@@ -116,7 +117,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					tr.setLocalAddress(localIP);
 					rtask.addResult(tr);
 					
-					if (cfg.isNoRecv() == false || (cfg.isNoRecv() && (srcPort % 100) == 0))
+					if (cfg.isNoRecv() == false || (cfg.isNoRecv() && (srcPort % 500) == 0))
 					this.publishProgress(new DefaultAsyncProgress(0.5, "SrcPort="+srcPort+"; stunPort=" + stunPort, 
 							"localIP:port="+localIP+":"+srcPort
 							+"; stunPort=" + stunPort 
@@ -180,14 +181,25 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		// build simple STUN binding request
 		byte[] data = null;
 		MessageHeader sendMH = null;
-		try {
-			sendMH = new MessageHeader(MessageHeader.MessageHeaderType.BindingRequest);
-			sendMH.generateTransactionID();
-			ChangeRequest changeRequest = new ChangeRequest();
-			sendMH.addMessageAttribute(changeRequest);
-			data = sendMH.getBytes();
-		} catch(UtilityException uo){
-			LOGGER.warn("Utility exception in sendMH", uo);
+		if (p.isNoStun()){
+			// Debug - collection is on server side, so help with it.
+			StringBuilder sb = new StringBuilder();
+			sb.append("|||||time=").append(System.currentTimeMillis())
+			  .append(";sport=").append(p.getIntPort())
+			  .append(";dport=").append(p.getExtPort())
+			  .append("|||||");
+			data = sb.toString().getBytes();
+		} else {
+			// STUN request
+			try {
+				sendMH = new MessageHeader(MessageHeader.MessageHeaderType.BindingRequest);
+				sendMH.generateTransactionID();
+				ChangeRequest changeRequest = new ChangeRequest();
+				sendMH.addMessageAttribute(changeRequest);
+				data = sendMH.getBytes();
+			} catch(UtilityException uo){
+				LOGGER.warn("Utility exception in sendMH", uo);
+			}
 		}
 		
 		// SEND
@@ -222,7 +234,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			}
 		}
 		
-		if (p.isNoRecv()){
+		if (p.isNoRecv() || p.isNoStun()){
 			try {
 				socket.close();
 			}catch(Exception e){

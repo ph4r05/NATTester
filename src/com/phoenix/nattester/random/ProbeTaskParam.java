@@ -11,6 +11,7 @@ public class ProbeTaskParam {
 	private InetAddress stunAddressCached;
 	private int socketTimeout=300;
 	private boolean noRecv=false;
+	private boolean noStun=false;
 	public TaskAppConfig getCfg() {
 		return cfg;
 	}
@@ -47,5 +48,10 @@ public class ProbeTaskParam {
 	public void setNoRecv(boolean noRecv) {
 		this.noRecv = noRecv;
 	}
-	
+	public boolean isNoStun() {
+		return noStun;
+	}
+	public void setNoStun(boolean noStun) {
+		this.noStun = noStun;
+	}
 }

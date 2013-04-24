@@ -26,8 +26,14 @@
     
     <item
         android:id="@+id/menu_random_norecv"
-        android:orderInCategory="103"
+        android:orderInCategory="104"
         android:showAsAction="never"
         android:title="@string/menu_random_norecv"/>
+    
+    <item
+        android:id="@+id/menu_random_nostun" 
+        android:orderInCategory="105"
+        android:showAsAction="never"
+        android:title="@string/menu_random_nostun"/>
 
 </menu>

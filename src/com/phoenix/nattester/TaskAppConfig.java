@@ -26,6 +26,27 @@ public class TaskAppConfig {
 	
 	private IServerService api=null;
 	
+	
+	public TaskAppConfig(){
+		
+	}
+	
+	public TaskAppConfig(TaskAppConfig s){
+		this.publicIP = s.publicIP;
+		this.peerIP = s.peerIP;
+		this.peerPort = s.peerPort;
+		this.n = s.n;
+		this.master=s.master;
+		this.updateCallback=s.updateCallback;
+		this.stunServer=s.stunServer;
+		this.stunPort=s.stunPort;
+		this.txName=s.txName;
+		this.txServer=s.txServer;
+		this.txServerPort=s.txServerPort;
+		this.txId=s.txId;
+		this.api=s.api;
+	}
+	
 	@Override
 	public String toString() {
 		return "TaskAppConfig [publicIP=" + publicIP + ", peerIP=" + peerIP

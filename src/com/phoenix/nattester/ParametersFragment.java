@@ -1,5 +1,7 @@
 package com.phoenix.nattester;
 
+import java.util.Random;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,11 +232,15 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	            return true;
 	        case R.id.menu_random:
 	        	LOGGER.debug("Options: Random collection");
-	        	startRandomTask(false);
+	        	startRandomTask(0);
 	        	return true;
 	        case R.id.menu_random_norecv:
 	        	LOGGER.debug("Options: Random collection scan");
-	        	startRandomTask(true);
+	        	startRandomTask(1);
+	        	return true;
+	        case R.id.menu_random_nostun:
+	        	LOGGER.debug("Options: Random collection scan, noStun");
+	        	startRandomTask(2);
 	        	return true;
 	        default:
 	            return super.onOptionsItemSelected(item);
@@ -528,7 +534,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             }
 	  }
 	  
-	  private void startRandomTask(boolean noRecv){
+	  private void startRandomTask(int noLvl){
 		  try{
             	final RandomTask task = new RandomTask(); 	                    	
             	task.setContext(getActivity());
@@ -549,15 +555,24 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             	// execute async task
             	iproc.start();
             	
-            	if (noRecv){
+            	if (noLvl==1){
             		this.onTaskUpdate(new DefaultAsyncProgress(1, "Starting noRecv scan", 
-            				"Starting noRecv scan; TcpDump filter on server side: \ntcpdump -nn -v -i eth0 'udp and host PUBLIC and not port 5060'"), 1);
+            				"Starting noRecv scan; TcpDump filter on server side: \ntcpdump -nn -v -S -X -i eth0 'udp and src PUBLIC and not port 5060'"), 1);
+            	} else if (noLvl==2){
+            		this.onTaskUpdate(new DefaultAsyncProgress(1, "Starting noStun scan", 
+            				"Starting noStun scan; TcpDump filter on server side: \ntcpdump -nn -v -S -X -i eth0 'udp and src PUBLIC and not port 5060'"), 1);
             	}
             	
+            	Random rnd = new Random(System.currentTimeMillis());
             	RandomTaskParam params = new RandomTaskParam();
-            	params.setCfg(cfg);
-            	params.setStunPorts(99);
-            	params.setNoRecv(noRecv);
+            	TaskAppConfig newCfg = new TaskAppConfig(cfg);
+            	if (noLvl==2) newCfg.setStunPort(40000 + (rnd.nextInt() % 5000));
+            	
+            	params.setCfg(newCfg);
+            	params.setStunPorts(noLvl==2 ? 5000 : 99);
+            	params.setNoRecv(noLvl > 0);
+            	params.setNoStun(noLvl > 1);
+            	
             	task.execute(params);
             }catch(Exception e){
             	Log.e(TAG, "Exception in RandomTask()", e);
