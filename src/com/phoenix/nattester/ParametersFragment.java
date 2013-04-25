@@ -10,6 +10,7 @@ import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
@@ -17,12 +18,12 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -48,11 +49,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  protected Button btnNATDetect;
 	  protected Button btnAbort;
 	  protected Button btnAlg;
-	  protected CheckBox checkMaster;
 	  protected EditText ePublicIP;
 	  protected EditText eTxName;
 	  protected EditText eTxServer;
-	  protected EditText eN;
 	  protected ProgressBar pbar;
 	  protected TextView pmsg;
 	  private InternalProgress iproc;
@@ -64,9 +63,16 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		
 	  public final void updateCfgFromUI(){
 			try {
-				cfg.setMaster(checkMaster.isChecked());
-				cfg.setN(Integer.parseInt(eN.getText().toString()));
-				
+				SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+        		String eNstr = sprefs.getString("symmetric_nat_traverse_ports", "25");
+        		int eN = 0;
+        		try {
+        			eN = Integer.parseInt(eNstr);
+        		} catch(NumberFormatException e){
+        			LOGGER.warn("Invalid format, should be number", e);
+        		}
+        		
+				cfg.setN(eN);
 				cfg.setTxName(eTxName.getText().toString());
 				cfg.setTxServer(eTxServer.getText().toString());
 				//cfg.setPeerIP(ePeerIP.getText().toString());
@@ -221,6 +227,10 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		  switch (item.getItemId()) {
 	        case R.id.menu_settings:
 	            LOGGER.debug("Options: settings");
+	            
+	            Intent intent = new Intent(getActivity(), PrefsActivity.class);
+	            startActivity(intent);
+	            
 	            return true;
 	        case R.id.menu_nat_timeout:
 	        	LOGGER.debug("Options: NAT timeout");
@@ -258,11 +268,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		  btnNATDetect = (Button) view.findViewById(R.id.btnNATDetect);
 		  btnAlg = (Button) view.findViewById(R.id.btnAlg);
 		  btnAbort = (Button) view.findViewById(R.id.btnAbort);
-		  checkMaster = (CheckBox) view.findViewById(R.id.checkMaster);
 		  ePublicIP = (EditText) view.findViewById(R.id.txtPublic);
 		  eTxName = (EditText) view.findViewById(R.id.txtTXName);
 		  eTxServer = (EditText) view.findViewById(R.id.txtTXServer);
-		  eN = (EditText) view.findViewById(R.id.txtN);
 		  pbar = (ProgressBar) view.findViewById(R.id.progressBar1);
 		  pmsg = (TextView) view.findViewById(R.id.textVMessage);
 		  pbar.setIndeterminate(false);
@@ -432,7 +440,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
                   dialog.show();
               	
                    
-              	task.setContext(getActivity());
+              	task.setContext(getActivity().getApplicationContext());
               	task.setDialog(dialog);
               	task.setCallback(ParametersFragment.this);
               	
@@ -452,7 +460,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
           public void onClick(View v) {
               try{
               	final NATDetectTask task = new NATDetectTask(); 	                    	
-              	task.setContext(getActivity());
+              	task.setContext(getActivity().getApplicationContext());
               	task.setDialog(null);
               	task.setCallback(iproc);
               	task.setGuiLogger((GuiLogger)getActivity());
@@ -481,7 +489,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
           public void onClick(View v) {
               try{
               	final TraverseTask task = new TraverseTask(); 	                    	
-              	task.setContext(getActivity());
+              	task.setContext(getActivity().getApplicationContext());
               	task.setDialog(null);
               	task.setCallback(iproc);
               	task.setGuiLogger((GuiLogger)getActivity());
@@ -508,7 +516,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  private void startNATtimeoutTask(int type){
 		  try{
             	final NATTimeoutTask task = new NATTimeoutTask(); 	                    	
-            	task.setContext(getActivity());
+            	task.setContext(getActivity().getApplicationContext());
             	task.setDialog(null);
             	task.setCallback(iproc);
             	task.setGuiLogger((GuiLogger)getActivity());
@@ -568,10 +576,23 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             	TaskAppConfig newCfg = new TaskAppConfig(cfg);
             	if (noLvl==2) newCfg.setStunPort(40000 + (rnd.nextInt() % 5000));
             	
+        		// obtain shared preferences
+        		SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+        		String portSleepMilliStr = sprefs.getString("port_sleep", "0");
+        		int portSleepMilli = 0;
+        		try {
+        			portSleepMilli = Integer.parseInt(portSleepMilliStr);
+        		} catch(NumberFormatException e){
+        			LOGGER.warn("Invalid format, should be number", e);
+        		}
+        		
+        		LOGGER.debug("Shared preferences used; port_sleep=" + portSleepMilli);
+            	
             	params.setCfg(newCfg);
             	params.setStunPorts(noLvl==2 ? 5000 : 99);
             	params.setNoRecv(noLvl > 0);
             	params.setNoStun(noLvl > 1);
+            	params.setPause(portSleepMilli);
             	
             	task.execute(params);
             }catch(Exception e){

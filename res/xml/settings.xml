@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- <Preference xmlns:android="http://schemas.android.com/apk/res/android" > -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <PreferenceCategory
+      android:summary="Random NAT related misc settings"
+      android:title="Random NAT" >
+		  <EditTextPreference
+		     android:key="port_sleep"
+		     android:summary="Sleep time in ms after 1 port scan"
+		     android:title="Port sleep"
+		     android:inputType="number"
+		     android:defaultValue="0"
+		     />
+  
+ </PreferenceCategory>
+ 
+ <PreferenceCategory
+      android:summary="Symmetric NAT traversal related settings"
+      android:title="Symmetric NAT" >
+      <EditTextPreference
+         android:key="symmetric_nat_traverse_ports"
+         android:summary="How many ports try to open in traversal algorithm"
+         android:title="Port number"
+         android:inputType="number"
+         android:defaultValue="25"
+         />
+  
+ </PreferenceCategory>
+    
+    
+
+</PreferenceScreen>

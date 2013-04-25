@@ -15,11 +15,13 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.DialogInterface.OnClickListener;
 import android.content.DialogInterface.OnKeyListener;
 import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -101,6 +103,7 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			
 			long iterCount = 0;
 			long lastDump = 0;
+			int pause = cfg.getPause();
 			while(this.wasCancelled()==false){
 				// cycle over STUN ports to eliminate already opened ports to STUN server - we would like to
 				// avoid using already opened ports and thus doing side effect - keep alive on them
@@ -116,6 +119,10 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					if (srcPort==ServerService.srvPort) continue;
 					if (this.wasCancelled()) break;
 					p.setIntPort(srcPort);
+					
+					if (pause>0){
+						Thread.sleep(pause);
+					}
 					
 					ProbeTaskReturn tr = this.probeScan(p);
 					tr.setLocalAddress(localIP);

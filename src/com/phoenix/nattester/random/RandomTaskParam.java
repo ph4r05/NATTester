@@ -7,6 +7,7 @@ public class RandomTaskParam {
 	int stunPorts=99;
 	boolean noRecv=false;
 	boolean noStun=false;
+	int pause=0;
 
 	public TaskAppConfig getCfg() {
 		return cfg;
@@ -38,6 +39,14 @@ public class RandomTaskParam {
 
 	public void setNoStun(boolean noStun) {
 		this.noStun = noStun;
+	}
+
+	public int getPause() {
+		return pause;
+	}
+
+	public void setPause(int pause) {
+		this.pause = pause;
 	}
 
 	@Override

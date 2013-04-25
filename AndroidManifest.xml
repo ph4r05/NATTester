@@ -42,6 +42,10 @@
             </intent-filter>
         </activity>
         
+        <activity
+          android:name=".PrefsActivity">
+        </activity>
+        
         <service
             android:name="com.phoenix.nattester.service.ServerService"
             android:process=":remote" >
