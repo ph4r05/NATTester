@@ -401,4 +401,9 @@ public class MainActivity extends SherlockFragmentActivity implements AsyncTaskL
 		LOGGER.debug("Message sending status: " + success);
 	}
 
+	@Override
+	public void setLocalIP(String IP) {
+		
+	}
+
 }

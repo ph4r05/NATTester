@@ -129,6 +129,7 @@ public class GetPublicIPTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgre
 	                    
 	                    this.publicIP = ma.getAddress().toString();
 	                    this.publishProgress(new DefaultAsyncProgress(0.05, "Public IP obtained", path + "\n"));
+	                    this.cfg.setLocalIP(localIP);
 	                    this.cfg.setPublicIP(ma.getAddress().toString());
 	                    LOGGER.debug("Test portDelta: received reply: " + path);
 	                    // stop while cycle -> next scan iteration
@@ -225,6 +226,7 @@ public class GetPublicIPTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgre
 		if (callback!=null){
 			if (publicIP!=null)
 				callback.setPublicIP(publicIP);
+			callback.setLocalIP(cfg.getLocalIP());
 			callback.onTaskUpdate(values[0], 1);
 		}
 	}

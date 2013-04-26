@@ -370,5 +370,9 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 		super.onCreateContextMenu(menu, v, menuInfo);
 	}
 
+	@Override
+	public void setLocalIP(String IP) {
+		
+	}
     
 }

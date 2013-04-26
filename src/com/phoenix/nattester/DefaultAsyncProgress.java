@@ -12,6 +12,7 @@ public class DefaultAsyncProgress {
 	public interface AsyncTaskListener {
 		void onTaskUpdate(DefaultAsyncProgress progress, int state);
 		void setPublicIP(String IP);
+		void setLocalIP(String IP);
 	}
 	
 	public DefaultAsyncProgress(double percent, String message) {

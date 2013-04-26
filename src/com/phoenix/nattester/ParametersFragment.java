@@ -50,6 +50,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  protected Button btnAbort;
 	  protected Button btnAlg;
 	  protected EditText ePublicIP;
+	  protected EditText eLocalIP;
 	  protected EditText eTxName;
 	  protected EditText eTxServer;
 	  protected ProgressBar pbar;
@@ -79,6 +80,8 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 				//cfg.setPeerPort(Integer.parseInt(ePeerPort.getText().toString()));
 				
 				cfg.setPublicIP(ePublicIP.getText().toString());
+				cfg.setLocalIP(eLocalIP.getText().toString());
+				
 				cfg.setStunPort(3478);
 				cfg.setStunServer("89.29.122.60");
 				cfg.setUpdateCallback(this);
@@ -269,6 +272,7 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		  btnAlg = (Button) view.findViewById(R.id.btnAlg);
 		  btnAbort = (Button) view.findViewById(R.id.btnAbort);
 		  ePublicIP = (EditText) view.findViewById(R.id.txtPublic);
+		  eLocalIP = (EditText) view.findViewById(R.id.txtLocal);
 		  eTxName = (EditText) view.findViewById(R.id.txtTXName);
 		  eTxServer = (EditText) view.findViewById(R.id.txtTXServer);
 		  pbar = (ProgressBar) view.findViewById(R.id.progressBar1);
@@ -416,6 +420,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 
 		@Override
 		public void setPublicIP(String IP) { }
+
+		@Override
+		public void setLocalIP(String IP) { }
 	  }
 	  
 	  private class PublicIPistener implements View.OnClickListener {
@@ -611,6 +618,13 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 		if (IP==null) return;
 		ePublicIP.setText(IP);
 	}
+	
+	@Override
+	public synchronized void setLocalIP(String IP) {
+		if (IP==null) return;
+		eLocalIP.setText(IP);
+	}
+	
 
 	@Override
 	public void onTaskUpdate(DefaultAsyncProgress progress, int state) {

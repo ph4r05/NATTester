@@ -9,6 +9,7 @@ import com.phoenix.nattester.service.IServerService;
  *
  */
 public class TaskAppConfig {
+	private String localIP;
 	private String publicIP;
 	private String peerIP;
 	private int peerPort=0;
@@ -32,6 +33,7 @@ public class TaskAppConfig {
 	}
 	
 	public TaskAppConfig(TaskAppConfig s){
+		this.localIP = s.localIP;
 		this.publicIP = s.publicIP;
 		this.peerIP = s.peerIP;
 		this.peerPort = s.peerPort;
@@ -47,13 +49,18 @@ public class TaskAppConfig {
 		this.api=s.api;
 	}
 	
+	
 	@Override
 	public String toString() {
-		return "TaskAppConfig [publicIP=" + publicIP + ", peerIP=" + peerIP
-				+ ", peerPort=" + peerPort + ", n=" + n + ", master=" + master
-				+ ", updateCallback=" + updateCallback + ", stunServer="
-				+ stunServer + ", stunPort=" + stunPort + "]";
+		return "TaskAppConfig [localIP=" + localIP + ", publicIP=" + publicIP
+				+ ", peerIP=" + peerIP + ", peerPort=" + peerPort + ", n=" + n
+				+ ", master=" + master + ", updateCallback=" + updateCallback
+				+ ", stunServer=" + stunServer + ", stunPort=" + stunPort
+				+ ", txName=" + txName + ", txServer=" + txServer
+				+ ", txServerPort=" + txServerPort + ", txId=" + txId
+				+ ", api=" + api + "]";
 	}
+
 	public String getPublicIP() {
 		return publicIP;
 	}
@@ -131,5 +138,11 @@ public class TaskAppConfig {
 	}
 	public void setTxId(String txId) {
 		this.txId = txId;
+	}
+	public String getLocalIP() {
+		return localIP;
+	}
+	public void setLocalIP(String localIP) {
+		this.localIP = localIP;
 	}
 }
