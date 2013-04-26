@@ -15,6 +15,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -41,7 +42,8 @@ import com.phoenix.nattester.service.IServerServiceCallback;
 import com.phoenix.nattester.service.ReceivedMessage;
 import com.phoenix.nattester.service.ServerService;
 
-public class ParametersFragment extends SherlockFragment implements AsyncTaskListener, ViewPagerVisibilityListener {
+public class ParametersFragment extends SherlockFragment implements 
+	AsyncTaskListener, ViewPagerVisibilityListener, OnSharedPreferenceChangeListener {
 	  private static final Logger LOGGER = LoggerFactory.getLogger(ParametersFragment.class);
 	  public final static String TAG = "ParFragment";
 	  
@@ -195,6 +197,10 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 			this.getActivity().getApplicationContext().startService(intent);
 			this.getActivity().getApplicationContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 			
+			// SharedPrefs changed
+			SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+			sprefs.registerOnSharedPreferenceChangeListener(this);
+			
 			// init progressbar that waits for service to bind
 			this.initProgress("Initializing...", "Starting & connecting to service");
 	  }
@@ -203,6 +209,9 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	  public void onDetach() {
 		  super.onDetach();
 		  LOGGER.debug("prefsDetached");
+		  
+		  SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+		  sprefs.unregisterOnSharedPreferenceChangeListener(this);
 		  
 		  try {
 				LOGGER.debug("About to stop service");
@@ -649,5 +658,27 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
 	public void onVisibilityChanged(boolean visible) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences arg0, String arg1) {
+		if (arg1.contentEquals("stun_server_ip")){
+			String ip = arg0.getString(arg1, "89.29.122.60");
+			this.cfg.setStunServer(ip);
+			LOGGER.debug("SharedPreferencesChanged, stun_server_ip=" + ip);
+		} else if (arg1.contentEquals("stun_server_port")){
+			String port = arg0.getString(arg1, "3478");
+			int portInt=3478;
+			try {
+				portInt = Integer.parseInt(port);
+			} catch(NumberFormatException e){
+				LOGGER.warn("Invalid number in stun port", e);
+			}
+			
+			this.cfg.setStunPort(portInt);
+			LOGGER.debug("SharedPreferencesChanged, stun_server_port=" + portInt);
+		} else {
+			LOGGER.debug("SharedPreferencesChanged, key=" + arg1);
+		}
 	}
 }

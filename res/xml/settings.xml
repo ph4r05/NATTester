@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- <Preference xmlns:android="http://schemas.android.com/apk/res/android" > -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-    <PreferenceCategory
+     <PreferenceCategory
+      android:summary="Global settings"
+      android:title="Globals" >
+	  <EditTextPreference
+	     android:key="stun_server_ip"
+	     android:summary="STUN server IP address"
+	     android:title="STUN IP"
+	     android:defaultValue="89.29.122.60"
+	     />
+	  <EditTextPreference
+	     android:key="stun_server_port"
+	     android:summary="STUN server UDP port"
+	     android:title="STUN UDP port"
+	     android:inputType="number"
+	     android:defaultValue="3478"
+	     />
+   </PreferenceCategory>
+
+   <PreferenceCategory
       android:summary="Random NAT related misc settings"
       android:title="Random NAT" >
 	  <EditTextPreference
