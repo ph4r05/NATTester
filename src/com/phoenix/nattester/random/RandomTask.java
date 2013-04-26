@@ -98,16 +98,18 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			p.setNoRecv(cfg.isNoRecv());
 			p.setNoStun(cfg.isNoStun());
 			
-			Random rnd = new Random(System.currentTimeMillis());
-			int stunPortIdx = 5 + (rnd.nextInt() % (cfg.getStunPorts()/2)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
-			
 			long iterCount = 0;
 			long lastDump = 0;
 			int pause = cfg.getPause();
+			int numports = cfg.getStunPorts();
+			
+			Random rnd = new Random(System.currentTimeMillis());
+			int stunPortIdx = 5 + (rnd.nextInt() % (numports > 2 ? (numports/2) : numports)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
+			
 			while(this.wasCancelled()==false){
 				// cycle over STUN ports to eliminate already opened ports to STUN server - we would like to
 				// avoid using already opened ports and thus doing side effect - keep alive on them
-				stunPortIdx = (stunPortIdx + 1) % cfg.getStunPorts();
+				stunPortIdx = (stunPortIdx + 1) % numports;
 				int stunPort = (cfg.getCfg().getStunPort() + stunPortIdx) % 65536;
 				localIP = Utils.getIPAddress(true);
 				

@@ -583,20 +583,33 @@ public class ParametersFragment extends SherlockFragment implements AsyncTaskLis
             	TaskAppConfig newCfg = new TaskAppConfig(cfg);
             	if (noLvl==2) newCfg.setStunPort(40000 + (rnd.nextInt() % 5000));
             	
-        		// obtain shared preferences
-        		SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
-        		String portSleepMilliStr = sprefs.getString("port_sleep", "0");
-        		int portSleepMilli = 0;
-        		try {
-        			portSleepMilli = Integer.parseInt(portSleepMilliStr);
-        		} catch(NumberFormatException e){
-        			LOGGER.warn("Invalid format, should be number", e);
-        		}
-        		
-        		LOGGER.debug("Shared preferences used; port_sleep=" + portSleepMilli);
-            	
+       		// obtain shared preferences
+       		SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+
+		// Port sleep
+       		String portSleepMilliStr = sprefs.getString("port_sleep", "0");
+       		int portSleepMilli = 0;
+       		try {
+       			portSleepMilli = Integer.parseInt(portSleepMilliStr);
+       		} catch(NumberFormatException e){
+       			LOGGER.warn("Invalid format, should be number", e);
+       		}
+       		
+       		LOGGER.debug("Shared preferences used; port_sleep=" + portSleepMilli);
+
+		// Stun port count 
+		int stunPortCount = 99;
+       		String stunPortcountStr = sprefs.getString("random_portCount", "99");
+       		try {
+       			stunPortCount = Integer.parseInt(stunPortcountStr);
+       		} catch(NumberFormatException e){
+       			LOGGER.warn("Invalid format, should be number", e);
+       		}
+       		
+       		LOGGER.debug("Shared preferences used; stunPortCount=" + stunPortCount);
+
             	params.setCfg(newCfg);
-            	params.setStunPorts(noLvl==2 ? 5000 : 99);
+            	params.setStunPorts(stunPortCount);
             	params.setNoRecv(noLvl > 0);
             	params.setNoStun(noLvl > 1);
             	params.setPause(portSleepMilli);

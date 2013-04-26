@@ -4,14 +4,21 @@
     <PreferenceCategory
       android:summary="Random NAT related misc settings"
       android:title="Random NAT" >
-		  <EditTextPreference
-		     android:key="port_sleep"
-		     android:summary="Sleep time in ms after 1 port scan"
-		     android:title="Port sleep"
-		     android:inputType="number"
-		     android:defaultValue="0"
-		     />
-  
+	  <EditTextPreference
+	     android:key="port_sleep"
+	     android:summary="Sleep time in ms after 1 port scan"
+	     android:title="Port sleep"
+	     android:inputType="number"
+	     android:defaultValue="0"
+	     />
+	  <EditTextPreference
+	     android:key="random_portCount"
+	     android:summary="Number of dst port to iterate over in Random"
+	     android:title="Random PortCount"
+	     android:inputType="number"
+	     android:defaultValue="99"
+	     />
+
  </PreferenceCategory>
  
  <PreferenceCategory
