@@ -1,16 +1,13 @@
-package com.phoenix.nattester.random;
+package com.phoenix.nattester.benchmark;
 
 import com.phoenix.nattester.TaskAppConfig;
 
-public class RandomTaskParam {
+public class BenchTaskParam {
 	TaskAppConfig cfg;
 	int stunPorts=99;
 	boolean noRecv=false;
 	boolean noStun=false;
 	int pause=0;
-	int srcPortStart = 1025;
-	int srcPortStop = 65535;
-	String filePrefix = null;
 
 	public TaskAppConfig getCfg() {
 		return cfg;
@@ -52,34 +49,8 @@ public class RandomTaskParam {
 		this.pause = pause;
 	}
 
-	public int getSrcPortStart() {
-		return srcPortStart;
-	}
-
-	public void setSrcPortStart(int srcPortStart) {
-		this.srcPortStart = srcPortStart;
-	}
-
-	public int getSrcPortStop() {
-		return srcPortStop;
-	}
-
-	public void setSrcPortStop(int srcPortStop) {
-		this.srcPortStop = srcPortStop;
-	}
-	
-	public String getFilePrefix() {
-		return filePrefix;
-	}
-
-	public void setFilePrefix(String filePrefix) {
-		this.filePrefix = filePrefix;
-	}
-
 	@Override
 	public String toString() {
-		return "RandomTaskParam [cfg=" + cfg + "]";
+		return "BenchTaskParam [cfg=" + cfg + "]";
 	}
-	
-	
 }

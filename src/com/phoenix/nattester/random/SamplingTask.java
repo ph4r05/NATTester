@@ -16,28 +16,26 @@ import android.content.DialogInterface.OnKeyListener;
 import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.PowerManager;
 import android.util.Log;
 import android.view.KeyEvent;
 
 import com.phoenix.nattester.DefaultAsyncProgress;
-import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.MessageInterface;
 import com.phoenix.nattester.TaskCancelInfo;
 import com.phoenix.nattester.Utils;
+import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.service.ServerService;
 
-
 /**
- * Async task for NAT detection	
+ * Task to sample NAT usage. 	
  * 
  * @author ph4r05
  * docs: http://developer.android.com/reference/android/os/AsyncTask.html
  */
-public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress, Exception> 
+public class SamplingTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress, Exception> 
 	implements OnKeyListener, MessageInterface, TaskCancelInfo {
 	private static final Logger LOGGER = LoggerFactory.getLogger(RandomTask.class);
-	public final static String TAG = "RandomTask";
+	public final static String TAG = "SamplingTask";
 	
 	// where to publish progress
 	private ProgressDialog dialog = null;
@@ -54,9 +52,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 	private ResultsTask rtask;
 	private Probe probe;
 	
-	private PowerManager pm;
-	private PowerManager.WakeLock wakeLock;
-	
 	@Override
 	protected Exception doInBackground(RandomTaskParam... arg0) {
 		if (arg0.length==0){
@@ -66,13 +61,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		this.cfg = arg0[0];
 		this.cancelledTriggered = false;
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Initializing"));
-		
-		this.pm = (PowerManager) this.context.getSystemService(Context.POWER_SERVICE);
-		this.wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My wakelook");
-		
-		// This will make the screen and power stay on
-		// This will release the wakelook after 1000 ms
-		wakeLock.acquire();
 		
 		try {
 			// local IP - stored in results file
@@ -85,10 +73,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			rtask.setCallback(this.callback);
 			rtask.setContext(this.context);
 			rtask.setResources(this.resources);
-			if (cfg.getFilePrefix()!=null){
-				rtask.setFilePrefix(cfg.getFilePrefix());
-			}
-			
 			if (dump2file) executeAsyncTask(rtask, cfg.getCfg());
 			this.publishProgress(new DefaultAsyncProgress(0.05, "Rtask started, scanning..."));
 			
@@ -106,14 +90,9 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 			long lastDump = 0;
 			int pause = cfg.getPause();
 			int numports = cfg.getStunPorts();
-			int startPort = cfg.getSrcPortStart();
-			int stopPort  = cfg.getSrcPortStop();
-			if (startPort == stopPort && startPort == ServerService.srvPort){
-				throw new IllegalArgumentException("Bad choice of the source port, cannot be " + ServerService.srvPort);
-			}
 			
 			Random rnd = new Random(System.currentTimeMillis());
-			int stunPortIdx = (5 + (rnd.nextInt() % (numports > 2 ? (numports/2) : numports))) % numports; // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
+			int stunPortIdx = 5 + (rnd.nextInt() % (numports > 2 ? (numports/2) : numports)); // initialize with offset 5 (from getpublic requests and previous...) + random - eliminate previous runs effects
 			
 			while(this.wasCancelled()==false){
 				// cycle over STUN ports to eliminate already opened ports to STUN server - we would like to
@@ -124,12 +103,16 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 				
 				this.publishProgress(new DefaultAsyncProgress(0.5, "New cycle of scan, stunPort=" + stunPort, "New cycle of scan, stunPort=" + stunPort + "; localIP=" + localIP));
 				
-				// iterate over a defined interval of source ports
+				// iterate over all source ports here
 				p.setExtPort(stunPort);
-				for(int srcPort=startPort; srcPort<=stopPort; srcPort++, iterCount++){
+				for(int srcPort=1025; srcPort<=65535; srcPort++, iterCount++){
 					if (srcPort==ServerService.srvPort) continue;
 					if (this.wasCancelled()) break;
 					p.setIntPort(srcPort);
+					
+					if (pause>0){
+						Thread.sleep(pause);
+					}
 					
 					ProbeTaskReturn tr = probe.probeScan(p);
 					tr.setLocalAddress(localIP);
@@ -156,11 +139,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 					}
 					
 					if (!dump2file) tr=null;
-					
-					// sleep some time if defined, may decrease packet drop ratio. Only on success
-					if (pause>0 && tr.isError()==false){
-						Thread.sleep(pause);
-					}
 				}
 			}		
 			
@@ -169,12 +147,6 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		} catch (Exception e) {
 			Log.e(TAG, "Exception", e);
 			return e;
-		} finally {
-			try {
-				wakeLock.release();
-			} catch(Exception e){
-				Log.e(TAG, "Wakelock release exception", e);
-			}
 		}
 		
 		// if here, cancel task
@@ -344,4 +316,3 @@ public class RandomTask extends AsyncTask<RandomTaskParam, DefaultAsyncProgress,
 		this.publishProgress(new DefaultAsyncProgress(0.5, "Update from NATdetect", message));
 	}
 }
-

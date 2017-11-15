@@ -6,16 +6,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import android.app.Activity;
-import android.app.ProgressDialog;
-import android.content.ComponentName;
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
-import android.content.DialogInterface.OnDismissListener;
-import android.content.pm.ActivityInfo;
-import android.content.Intent;
-import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -24,7 +17,6 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
-import android.text.Editable;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -35,10 +27,8 @@ import com.actionbarsherlock.app.ActionBar.Tab;
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
-import com.phoenix.nattester.service.IServerService;
 import com.phoenix.nattester.service.IServerServiceCallback;
 import com.phoenix.nattester.service.ReceivedMessage;
-import com.phoenix.nattester.service.ServerService;
 
 public class MainFragmentActivity extends SherlockFragmentActivity  implements AsyncTaskListener, MessageInterface, GuiLogger, IServerServiceCallback{
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainFragmentActivity.class);
@@ -268,7 +258,10 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 				if (mNextPosition >= 0) {
 					sendFragmentVisibilityChange(mNextPosition, true);
 				}
-				invalidateOptionsMenu();
+				
+				if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB){
+					invalidateOptions();
+				}
 
 				mCurrentPosition = mNextPosition;
 				break;
@@ -289,8 +282,11 @@ public class MainFragmentActivity extends SherlockFragmentActivity  implements A
 			;
 		}
 	}
-
-
+	
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    private void invalidateOptions(){                                                                                                                                      
+    	invalidateOptionsMenu();
+    }
 
 	@Override
 	public void addMessage(String message) {

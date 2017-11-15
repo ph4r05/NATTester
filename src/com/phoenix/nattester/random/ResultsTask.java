@@ -49,6 +49,9 @@ public class ResultsTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, 
 	private TaskAppConfig cfg;
 	private String publicIP=null;
 	
+	// prefix for file with results
+	private String filePrefix = "random";
+	
 	// primary attribute here - from this queue will data be dumped to a file
 	private ConcurrentLinkedQueue<ProbeTaskReturn> queue = null;
 	FileWriter fileWriter = null;
@@ -63,7 +66,7 @@ public class ResultsTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, 
 		this.publishProgress(new DefaultAsyncProgress(0.05, "Initializing"));
 		
 		// Get the directory for the user's public pictures directory. 
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "random-"+System.currentTimeMillis()+".txt");
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), this.filePrefix + "-" + System.currentTimeMillis() + ".txt");
         LOGGER.debug("File is: " + file.getAbsolutePath() + "; is file=" + file.isFile());
 		try {
 			fileWriter = new FileWriter(file, true);
@@ -246,6 +249,14 @@ public class ResultsTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress, 
 	    return true;
 	  }
 	  
+	public String getFilePrefix() {
+		return filePrefix;
+	}
+
+	public void setFilePrefix(String filePrefix) {
+		this.filePrefix = filePrefix;
+	}
+
 	public ProgressDialog getDialog() {
 		return dialog;
 	}

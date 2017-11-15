@@ -1,5 +1,7 @@
 package com.phoenix.nattester;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -35,6 +37,8 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 import com.phoenix.nattester.DefaultAsyncProgress.AsyncTaskListener;
 import com.phoenix.nattester.MainFragmentActivity.ViewPagerVisibilityListener;
+import com.phoenix.nattester.benchmark.BenchTask;
+import com.phoenix.nattester.benchmark.BenchTaskParam;
 import com.phoenix.nattester.random.RandomTask;
 import com.phoenix.nattester.random.RandomTaskParam;
 import com.phoenix.nattester.service.IServerService;
@@ -63,6 +67,7 @@ public class ParametersFragment extends SherlockFragment implements
 	  final TaskAppConfig cfg = new TaskAppConfig();
 	  
 	  protected ProgressDialog progressDialog;
+	  protected final ArrayList<MessageObserver> mObservers = new ArrayList<MessageObserver>(8);
 		
 	  public final void updateCfgFromUI(){
 			try {
@@ -101,6 +106,24 @@ public class ParametersFragment extends SherlockFragment implements
 			}
 			@Override
 			public void messageReceived(ReceivedMessage msg) throws RemoteException {
+				LOGGER.debug("MsgReceived() from Stub()");
+				
+				// at first distribute message among observers
+				synchronized(mObservers){
+					Iterator<MessageObserver> it = mObservers.iterator();
+					while(it.hasNext()){
+						MessageObserver mob = it.next();
+						if (mob==null) { it.remove(); continue; }
+						
+						try {
+							mob.onNewMessageReceived(msg);
+						} catch(Exception e){
+							LOGGER.error("Exception during message received, observer failed", e);
+						}
+					}
+				}
+				
+				// now pass this to the main activity
 				MainFragmentActivity act = (MainFragmentActivity) getActivity();
 				act.messageReceived(msg);
 			}				
@@ -119,6 +142,24 @@ public class ParametersFragment extends SherlockFragment implements
 			}
 			@Override
 			public void messageReceived(ReceivedMessage msg) throws RemoteException {
+				LOGGER.debug("MsgReceived() from smallCallback");
+				
+				// at first distribute message among observers
+				synchronized(mObservers){
+					Iterator<MessageObserver> it = mObservers.iterator();
+					while(it.hasNext()){
+						MessageObserver mob = it.next();
+						if (mob==null) { it.remove(); continue; }
+						
+						try {
+							mob.onNewMessageReceived(msg);
+						} catch(Exception e){
+							LOGGER.error("Exception during message received, observer failed", e);
+						}
+					}
+				}
+				
+				// now pass this to the main activity
 				MainFragmentActivity act = (MainFragmentActivity) getActivity();
 				act.messageReceived(msg);
 			}
@@ -264,12 +305,21 @@ public class ParametersFragment extends SherlockFragment implements
 	        	LOGGER.debug("Options: Random collection scan, noStun");
 	        	startRandomTask(2);
 	        	return true;
+	        case R.id.menu_benchmark:
+	        	LOGGER.debug("Options: Benchmark started");
+	        	startBenchmarkTask(2);
+	        	return true;
+	        case R.id.menu_sampling:
+	        	LOGGER.debug("Options: Sampling started");
+	        	startSamplingTask();
+	        	return true;
 	        default:
 	            return super.onOptionsItemSelected(item);
 	     }
 	  }
-	
-	  @Override
+
+
+	@Override
 	  public void onViewCreated(View view, Bundle savedInstanceState) {
 		  super.onViewCreated(view, savedInstanceState);
 		  this.setHasOptionsMenu(true);
@@ -558,6 +608,49 @@ public class ParametersFragment extends SherlockFragment implements
             }
 	  }
 	  
+	  public synchronized void removeObserver(MessageObserver ob){
+		  if (ob==null) throw new NullPointerException("Observer is null");
+		  this.mObservers.remove(ob);
+	  }
+	  
+	  private void startBenchmarkTask(int i) {
+		  try{
+          	final BenchTask task = new BenchTask();
+          	task.setFrag(this);
+          	task.setContext(getActivity());
+          	task.setDialog(null);
+          	task.setCallback(iproc);
+          	task.setResources(getActivity().getResources());
+          	iproc.setOnCancelListener(new OnCancelListener() {
+						@Override
+						public void onCancel(DialogInterface dialog) {
+							LOGGER.debug("cancelling benchmark");
+							task.cancel(false);
+						}
+					});
+          	
+          	// parameters
+          	updateCfgFromUI();
+          	
+          	// execute async task
+          	iproc.start();
+          	this.onTaskUpdate(new DefaultAsyncProgress(1, "Starting benchmark", "Starting benchmark"), 1);
+          	
+          	// initialize task parameters as a copy of original ones
+          	BenchTaskParam params = new BenchTaskParam();
+          	TaskAppConfig newCfg = new TaskAppConfig(cfg);
+
+          	params.setCfg(newCfg);
+          	synchronized(this.mObservers){
+          		this.mObservers.add(task);
+          	}
+          	
+          	task.execute(params);
+          }catch(Exception e){
+          	Log.e(TAG, "Exception in BenchmarkTask()", e);
+          }
+	  }
+	  
 	  private void startRandomTask(int noLvl){
 		  try{
             	final RandomTask task = new RandomTask(); 	                    	
@@ -590,12 +683,12 @@ public class ParametersFragment extends SherlockFragment implements
             	Random rnd = new Random(System.currentTimeMillis());
             	RandomTaskParam params = new RandomTaskParam();
             	TaskAppConfig newCfg = new TaskAppConfig(cfg);
-            	if (noLvl==2) newCfg.setStunPort(40000 + (rnd.nextInt() % 5000));
+            	if (noLvl==2) newCfg.setStunPort(40000 + (rnd.nextInt() % 5000));	 // 2 ~ no STUN
             	
        		// obtain shared preferences
        		SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
 
-		// Port sleep
+       		// Port sleep
        		String portSleepMilliStr = sprefs.getString("port_sleep", "0");
        		int portSleepMilli = 0;
        		try {
@@ -606,8 +699,8 @@ public class ParametersFragment extends SherlockFragment implements
        		
        		LOGGER.debug("Shared preferences used; port_sleep=" + portSleepMilli);
 
-		// Stun port count 
-		int stunPortCount = 99;
+			// Stun port count 
+			int stunPortCount = 99;
        		String stunPortcountStr = sprefs.getString("random_portCount", "99");
        		try {
        			stunPortCount = Integer.parseInt(stunPortcountStr);
@@ -629,18 +722,82 @@ public class ParametersFragment extends SherlockFragment implements
             }
 	  }
 	  
-	  
-	  public void setApi(IServerService api){
-		  LOGGER.debug("Setting api from acctivity");
-		  cfg.setApi(api);
-	  }
-	  
+	private void startSamplingTask() {
+		try {
+			final RandomTask task = new RandomTask();
+			task.setContext(getActivity());
+			task.setDialog(null);
+			task.setCallback(iproc);
+			task.setResources(getActivity().getResources());
+			iproc.setOnCancelListener(new OnCancelListener() {
+				@Override
+				public void onCancel(DialogInterface dialog) {
+					LOGGER.debug("cancelling NAT Sampling task");
+					task.cancel(false);
+				}
+			});
+
+			// parameters
+			updateCfgFromUI();
+
+			// execute async task
+			iproc.start();
+
+			this.onTaskUpdate(
+					new DefaultAsyncProgress(
+							1,
+							"Starting sampling scan",
+							"Starting sampling scan; TcpDump filter on server side: \ntcpdump -nn -v -S -X -i eth0 'udp and src PUBLIC and not port 5060'"),
+					1);
+
+			RandomTaskParam params = new RandomTaskParam();
+			TaskAppConfig newCfg = new TaskAppConfig(cfg);
+
+			// obtain shared preferences
+			SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+
+			// Port sleep
+			String portSleepMilliStr = sprefs.getString("port_sleep", "0");
+			int portSleepMilli = 0;
+			try {
+				portSleepMilli = Integer.parseInt(portSleepMilliStr);
+			} catch (NumberFormatException e) {
+				LOGGER.warn("Invalid format, should be number", e);
+			}
+
+			LOGGER.debug("Shared preferences used; port_sleep="
+					+ portSleepMilli);
+
+			// Stun port count
+			int stunPortCount = 1;
+
+			params.setFilePrefix("sample");
+			params.setCfg(newCfg);
+			params.setStunPorts(stunPortCount);
+			params.setNoRecv(false);
+			params.setNoStun(false);
+			params.setPause(portSleepMilli);
+			params.setSrcPortStart(1025);
+			params.setSrcPortStop(65535);
+
+			task.execute(params);
+		} catch (Exception e) {
+			Log.e(TAG, "Exception in SamplingTask()", e);
+		}
+	}
+
+	public void setApi(IServerService api) {
+		LOGGER.debug("Setting api from acctivity");
+		cfg.setApi(api);
+	}
+
 	@Override
 	public synchronized void setPublicIP(String IP) {
-		if (IP==null) return;
+		if (IP == null)
+			return;
 		ePublicIP.setText(IP);
 	}
-	
+
 	@Override
 	public synchronized void setLocalIP(String IP) {
 		if (IP==null) return;

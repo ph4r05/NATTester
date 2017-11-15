@@ -2,6 +2,8 @@ package com.phoenix.nattester.service;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.slf4j.Logger;
@@ -34,6 +36,10 @@ public class ServerSender extends Thread{
 		this.messageQueue.add(msg);
 	}
 	
+	public void clearQueue(){
+		this.messageQueue.clear();
+	}
+	
 	@Override
 	public void run() {
 		// just obtain local address and bind to defined socket
@@ -57,23 +63,40 @@ public class ServerSender extends Thread{
 				LOGGER.debug("We have [" + this.messageQueue.size() + "] packets in queue to send");
 				
 				Message2Send m2s = this.messageQueue.poll();
+				Message2Send m2sMaster = m2s;
 				if (m2s==null) continue;
 				
-				// send message
-				try {
-					LOGGER.debug("ServerSender is about to send datagram packet: " + m2s.toString());
-					DatagramPacket sendPacket = new DatagramPacket(m2s.aMessage, m2s.aMessage.length, m2s.ip, m2s.dstPort);
-					socket.send(sendPacket);
-					if (callback!=null) callback.messageSent(1);
-				} catch(Exception e){
-					if (callback!=null)
-						try {
-							callback.messageSent(-1);
-						} catch (RemoteException e1) {
-							LOGGER.error("Cannot inform callback of unsuccessfull message attempt.", e);
-						}
-					LOGGER.error("Was not able to send message.", e);
-				}
+				Iterator<Message2Send> it = (m2sMaster.blockMessages == null  || m2sMaster.blockMessages.isEmpty()) ? null : m2sMaster.blockMessages.iterator(); 
+				do {
+					// send message
+					try {
+						LOGGER.debug("ServerSender is about to send datagram packet: " + m2s.toString());
+						DatagramPacket sendPacket = new DatagramPacket(m2s.aMessage, m2s.aMessage.length, m2s.ip, m2s.dstPort);
+						socket.send(sendPacket);
+						
+						// speed optim...
+						Thread.sleep(100);
+						//if (callback!=null) callback.messageSent(1);
+					} catch(Exception e){
+						if (callback!=null)
+							try {
+								callback.messageSent(-1);
+							} catch (RemoteException e1) {
+								LOGGER.error("Cannot inform callback of unsuccessfull message attempt.", e);
+							}
+						LOGGER.error("Was not able to send message.", e);
+					}
+					
+					if (it==null) m2s=null;
+					else if(it.hasNext()==false) m2s=null;
+					else {
+						m2s=it.next();
+					}
+					
+				} while(m2s!=null);
+				
+				it = null;
+				m2sMaster.blockMessages=null;
 			}
 		}
 		

@@ -34,7 +34,7 @@ public class ServerListener extends Thread{
 		try {
             while(this.running) {
             	try {
-	                DatagramPacket receive = new DatagramPacket(new byte[521], 512);
+	                DatagramPacket receive = new DatagramPacket(new byte[256], 256);
 	                socket.receive(receive);
 	                ReceivedMessage msg = new ReceivedMessage();
 	                msg.setMilliReceived(System.currentTimeMillis());

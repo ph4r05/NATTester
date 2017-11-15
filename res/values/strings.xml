@@ -9,4 +9,6 @@
     <string name="menu_random_norecv">RandomScan</string>
     <string name="menu_random_nostun">RandomNoStun</string>
     <string name="symmetric_nat_traverse_ports">symmetric_nat_traverse_ports</string>
+    <string name="menu_benchmark">Bench</string>
+    <string name="menu_sampling">Sampling</string>
 </resources>

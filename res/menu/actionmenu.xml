@@ -35,5 +35,16 @@
         android:orderInCategory="105"
         android:showAsAction="never"
         android:title="@string/menu_random_nostun"/>
+    
+    <item
+        android:id="@+id/menu_benchmark" 
+        android:orderInCategory="106"
+        android:showAsAction="never"
+        android:title="@string/menu_benchmark"/>
 
+     <item
+        android:id="@+id/menu_sampling" 
+        android:orderInCategory="106"
+        android:showAsAction="never"
+        android:title="@string/menu_sampling"/>
 </menu>

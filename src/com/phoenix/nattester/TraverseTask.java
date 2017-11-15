@@ -75,8 +75,9 @@ public class TraverseTask extends AsyncTask<TaskAppConfig, DefaultAsyncProgress,
 	        // Phase 1 - start transaction here
 	        //
 	        
-	        // here is stored log from scan - to detect address/port sensitivity
-	        int timeout = 300;
+	        // Here is stored log from scan - to detect address/port sensitivity
+	        // Timeout for transaction is set rather high since we may want to simulate busy network by this timeouts
+	        int timeout = 1000*2;
 	        long txStartTime = System.currentTimeMillis();
 	        
 	        LOGGER.debug("Local IP address obtained: " + localIP);

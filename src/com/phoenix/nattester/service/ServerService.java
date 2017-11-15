@@ -4,6 +4,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,32 @@ public class ServerService extends Service {
 	// Implement public interface for the service
 	private final IServerService.Stub binder = new IServerService.Stub() {
 		@Override
+		public int sendMessageList(String aIP, List<Message2SendParc> lst) throws RemoteException {
+			Message2Send m2s;
+			if (lst.isEmpty()) return -2;
+			try {
+				Message2SendParc[] parcArr = new Message2SendParc[lst.size()];
+				parcArr = lst.toArray(parcArr);
+				
+				// the first message is special
+				InetAddress ia = InetAddress.getByName(aIP);
+				m2s = new Message2Send(ia, parcArr[0].getSourcePort(), parcArr[0].getMessage());
+				m2s.blockMessages = new ArrayList<Message2Send>(parcArr.length-1);
+				
+				for(int i=1; i<(parcArr.length-1); i++){
+					Message2Send m2sTmp = new Message2Send(ia, parcArr[i].getSourcePort(), parcArr[i].getMessage());
+					m2s.blockMessages.add(m2sTmp);
+				}
+				
+				sender.addMessage(m2s);
+				return 1;
+			} catch (UnknownHostException e) {
+				LOGGER.error("Unable to enqueue packet to send");
+				return -1;
+			}
+		}
+		
+		@Override
 		public int sendMessage(String aIP, int dstPort, byte[] aMessage) throws RemoteException {
 			Message2Send m2s;
 			try {
@@ -34,6 +65,17 @@ public class ServerService extends Service {
 				return 1;
 			} catch (UnknownHostException e) {
 				LOGGER.error("Unable to enqueue packet to send");
+				return -1;
+			}
+		}
+		
+		@Override
+		public int clearSenderQueue() throws RemoteException {
+			try {
+				sender.clearQueue();
+				return 1;
+			} catch (Exception e) {
+				LOGGER.error("Unable to clear packet queue to send");
 				return -1;
 			}
 		}
@@ -56,7 +98,7 @@ public class ServerService extends Service {
 				// open socket, bind it and set timeout on it
 				socket = new DatagramSocket(srvPort);
 				socket.setReuseAddress(true);
-                socket.setSoTimeout(300);
+                socket.setSoTimeout(2000);
 				
 				// prepare sender and listener threads
 				sender = new ServerSender(srvPort, socket);
